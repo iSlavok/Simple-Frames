@@ -1,10 +1,12 @@
 package online.slavok.frames.mixin;
 
 import online.slavok.frames.SimpleFramesMod;
+import online.slavok.frames.FrameTags;
+//? if >=1.20.5 {
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.NbtComponent;
+//?}
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.decoration.ItemFrameEntity;
 import net.minecraft.entity.player.PlayerEntity;
@@ -44,13 +46,13 @@ public class ItemFrameMixin {
 			//?} else {
 			/*ServerWorld serverWorld = (ServerWorld) frame.getWorld();*/
 			//?}
-			boolean isInvisibleFrame = frame.getCommandTags().contains("invisibleframe");
+			boolean isInvisibleFrame = FrameTags.has(frame);
 
 			// Shears -> make frame invisible
 			if (itemStackInHand.getItem().getTranslationKey().equals("item.minecraft.shears") && !isInvisibleFrame) {
 				if (!player.isCreative() && SimpleFramesMod.CONFIG.doShearsBreak) {
-					if (itemStackInHand.getDamage() < 237) {
-						itemStackInHand.damage(1, player, EquipmentSlot.MAINHAND);
+					if (itemStackInHand.getDamage() < itemStackInHand.getMaxDamage() - 1) {
+						itemStackInHand.setDamage(itemStackInHand.getDamage() + 1);
 					} else {
 						itemStackInHand.decrement(1);
 					}
@@ -58,7 +60,7 @@ public class ItemFrameMixin {
 				serverWorld.playSound(null, frame.getBlockPos(), SoundEvents.ENTITY_SNOW_GOLEM_SHEAR, SoundCategory.NEUTRAL, 1f, 1.5f);
 				serverWorld.spawnParticles(ParticleTypes.CLOUD, frame.getX(), frame.getY(), frame.getZ(), 3, 0.0, 0.0, 0.0, 0.1);
 
-				frame.addCommandTag("invisibleframe");
+				FrameTags.add(frame);
 				if (!frame.getHeldItemStack().isEmpty()) {
 					frame.setInvisible(true);
 				}
@@ -75,7 +77,7 @@ public class ItemFrameMixin {
 				serverWorld.spawnParticles(ParticleTypes.CRIT, frame.getX(), frame.getY(), frame.getZ(), 10, 0.3, 0.3, 0.3, 0.1);
 
 				frame.setInvisible(false);
-				frame.removeCommandTag("invisibleframe");
+				FrameTags.remove(frame);
 
 				cir.setReturnValue(true);
 				cir.cancel();
@@ -104,15 +106,20 @@ public class ItemFrameMixin {
 		try {
 			if (!SimpleFramesMod.CONFIG.fixWithLeather) return;
 			ItemFrameEntity frame = ((ItemFrameEntity) (Object) this);
-			if (frame.getCommandTags().contains("invisibleframe")) {
+			if (FrameTags.has(frame)) {
 				ItemStack item = cir.getReturnValue();
+				//? if >=1.20.5 {
 				item.set(DataComponentTypes.ITEM_NAME, Text.of("Невидимая рамка"));
 				item.set(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, true);
-
 				NbtComponent nbtCompound = item.get(DataComponentTypes.CUSTOM_DATA);
 				NbtCompound nbt = (nbtCompound == null) ? NbtComponent.DEFAULT.copyNbt() : nbtCompound.copyNbt();
 				nbt.putBoolean("invisibleframe", true);
 				item.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(nbt));
+				//?} else {
+				/*item.setCustomName(Text.of("Невидимая рамка"));
+				NbtCompound nbt = item.getOrCreateNbt();
+				nbt.putBoolean("invisibleframe", true);*/
+				//?}
 
 				cir.setReturnValue(item);
 			}
@@ -124,7 +131,7 @@ public class ItemFrameMixin {
 	private void updateState() {
 		try {
 			ItemFrameEntity frame = ((ItemFrameEntity) (Object) this);
-			if (frame.getCommandTags().contains("invisibleframe")) {
+			if (FrameTags.has(frame)) {
 				frame.setInvisible(!frame.getHeldItemStack().isEmpty());
 			}
 		} catch (Exception e) {
