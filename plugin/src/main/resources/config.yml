@@ -1,0 +1,6 @@
+# Do shears take durability damage / break when used to make a frame invisible.
+doShearsBreak: true
+
+# Allow restoring invisible frames with leather. Also controls whether an invisible
+# frame keeps its invisibility when broken and placed again.
+fixWithLeather: true

@@ -74,6 +74,17 @@ Requires a JDK matching the newest target you build (**JDK 25** to build the 26.
 
 Each anchor's jar lands in `versions/<anchor>/build/libs/`.
 
+## Server plugin (Bukkit / Spigot / Paper / Purpur / Folia)
+
+The same behaviour is also available as a **server plugin** (no client mod needed on either side) in [`plugin/`](plugin) — a standalone Gradle build using the Bukkit API. One jar runs on Spigot, Paper, Purpur and Folia (`folia-supported`), across MC 1.18+.
+
+```bash
+./gradlew -p plugin build       # build + tests (MockBukkit)
+./gradlew -p plugin runServer   # boot a Paper server with the plugin (-Prun_mc=1.21.8)
+```
+
+Same features (shear → invisible, leather → restore, persistence through breaking, `doShearsBreak`/`fixWithLeather` config, `/simpleframes` command gated by `simpleframes.command`). The plugin jar lands in `plugin/build/libs/`.
+
 ## License
 
 [MIT](LICENSE) © iSlavok
