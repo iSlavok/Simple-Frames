@@ -70,22 +70,15 @@ class FrameListener(private val plugin: SimpleFramesPlugin) : Listener {
         }
     }
 
-    // Right-click: leather restores too (instead of being placed into the frame);
-    // placing any other item into an invisible frame hides it again.
+    // Right-click just places an item into the frame (vanilla). Restoring is on
+    // left-click (attack) with leather, mirroring shears — so leather can still be
+    // put into a frame normally. Placing an item into an empty invisible frame
+    // hides it again.
     @EventHandler(ignoreCancelled = true)
     fun onInteract(event: PlayerInteractEntityEvent) {
         val frame = event.rightClicked as? ItemFrame ?: return
         if (!isInvisible(frame)) return
         val hand = event.player.inventory.itemInMainHand
-
-        if (hand.type == Material.LEATHER && plugin.fixWithLeather) {
-            event.isCancelled = true
-            if (event.player.gameMode != GameMode.CREATIVE) hand.amount -= 1
-            restore(frame)
-            return
-        }
-
-        // Placing an item into an empty invisible frame hides it.
         if (frame.item.type == Material.AIR && hand.type != Material.AIR) {
             frame.setVisible(false)
         }

@@ -117,8 +117,24 @@ class FrameListenerTest {
         verify(pdc).remove(key)
     }
 
+    // Right-click places an item into an empty invisible frame -> it hides again.
     @Test
-    fun `leather restores an invisible frame (right-click)`() {
+    fun `placing an item in an empty invisible frame hides it`() {
+        val plugin = mockPlugin()
+        val (frame, _) = mockFrame(invisible = true, itemType = Material.AIR)
+        val player = mockPlayer(Material.DIAMOND)
+        val event = mock<PlayerInteractEntityEvent>()
+        whenever(event.rightClicked).thenReturn(frame)
+        whenever(event.player).thenReturn(player)
+
+        FrameListener(plugin).onInteract(event)
+
+        verify(frame).setVisible(false)
+    }
+
+    // Restore is left-click only: right-clicking leather just puts it into the frame.
+    @Test
+    fun `right-click leather does not restore`() {
         val plugin = mockPlugin()
         val (frame, pdc) = mockFrame(invisible = true, itemType = Material.AIR)
         val player = mockPlayer(Material.LEATHER)
@@ -128,9 +144,8 @@ class FrameListenerTest {
 
         FrameListener(plugin).onInteract(event)
 
-        verify(event).isCancelled = true
-        verify(frame).setVisible(true)
-        verify(pdc).remove(key)
+        verify(pdc, never()).remove(key) // not restored
+        verify(frame).setVisible(false)  // leather placed -> hidden
     }
 
     // Negative control: shears on an already-invisible EMPTY frame do nothing.
