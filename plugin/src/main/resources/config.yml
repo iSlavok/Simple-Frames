@@ -10,3 +10,13 @@ invisibleFrameName: "Invisible Item Frame"
 
 # Item name shown on an invisible glow frame.
 invisibleGlowFrameName: "Invisible Glow Item Frame"
+
+# Enable the wax feature: honeycomb locks an item's rotation, an axe unlocks it.
+enableWax: true
+
+# false = waxing blocks only right-click (rotation / item change);
+# true  = a waxed frame is also fully invulnerable while waxed.
+waxFullLock: false
+
+# Do axes lose durability when removing wax.
+doAxeBreak: true

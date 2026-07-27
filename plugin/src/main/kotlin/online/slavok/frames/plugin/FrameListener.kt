@@ -13,9 +13,12 @@ import org.bukkit.entity.GlowItemFrame
 import org.bukkit.entity.ItemFrame
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
+import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.entity.EntityDamageByEntityEvent
+import org.bukkit.event.entity.EntityDamageEvent
 import org.bukkit.event.hanging.HangingBreakByEntityEvent
+import org.bukkit.event.hanging.HangingBreakEvent
 import org.bukkit.event.hanging.HangingPlaceEvent
 import org.bukkit.event.player.PlayerInteractEntityEvent
 import org.bukkit.inventory.ItemFlag
@@ -38,6 +41,30 @@ class FrameListener(private val plugin: SimpleFramesPlugin) : Listener {
     /** A tagged frame is invisible only while it holds an item; empty -> visible. */
     private fun syncVisibility(frame: ItemFrame) {
         frame.setVisible(frame.item.type == Material.AIR)
+    }
+
+    private fun isWaxed(frame: ItemFrame): Boolean =
+        frame.persistentDataContainer.has(plugin.waxedKey, PersistentDataType.BYTE)
+
+    private fun setWaxed(frame: ItemFrame) =
+        frame.persistentDataContainer.set(plugin.waxedKey, PersistentDataType.BYTE, 1.toByte())
+
+    private fun unsetWaxed(frame: ItemFrame) =
+        frame.persistentDataContainer.remove(plugin.waxedKey)
+
+    private fun isAxe(material: Material): Boolean = material.name.endsWith("_AXE")
+
+    private fun damageAxe(item: ItemStack) {
+        val meta = item.itemMeta
+        if (meta is Damageable) {
+            val next = meta.damage + 1
+            if (next >= item.type.maxDurability) {
+                item.amount -= 1
+            } else {
+                meta.damage = next
+                item.itemMeta = meta
+            }
+        }
     }
 
     private fun restore(frame: ItemFrame) {
@@ -81,6 +108,12 @@ class FrameListener(private val plugin: SimpleFramesPlugin) : Listener {
 
         if (isInvisible(frame) && frame.item.type != Material.AIR) {
             frame.setVisible(true) // the item is about to be removed -> visible
+        }
+        // var2: knocking the item out of a waxed frame removes the wax, so the now-empty
+        // frame is usable again (waxing needs an item; an empty waxed frame is a dead end).
+        if (plugin.enableWax && isWaxed(frame) && frame.item.type != Material.AIR) {
+            unsetWaxed(frame)
+            effects(frame, Sound.ITEM_AXE_WAX_OFF, Particle.WAX_OFF, 7, 0.2)
         }
     }
 
@@ -129,11 +162,62 @@ class FrameListener(private val plugin: SimpleFramesPlugin) : Listener {
     @EventHandler(ignoreCancelled = true)
     fun onInteract(event: PlayerInteractEntityEvent) {
         val frame = event.rightClicked as? ItemFrame ?: return
+
+        if (plugin.enableWax) {
+            val held = event.player.inventory.itemInMainHand
+            val waxed = isWaxed(frame)
+
+            // Axe on a waxed frame -> remove wax.
+            if (waxed && isAxe(held.type)) {
+                event.isCancelled = true
+                if (event.player.gameMode != GameMode.CREATIVE && plugin.doAxeBreak) damageAxe(held)
+                unsetWaxed(frame)
+                effects(frame, Sound.ITEM_AXE_WAX_OFF, Particle.WAX_OFF, 7, 0.2)
+                return
+            }
+
+            // Honeycomb on an un-waxed frame that holds an item -> wax it.
+            if (!waxed && held.type == Material.HONEYCOMB && frame.item.type != Material.AIR) {
+                event.isCancelled = true
+                if (event.player.gameMode != GameMode.CREATIVE) held.amount -= 1
+                setWaxed(frame)
+                effects(frame, Sound.ITEM_HONEYCOMB_WAX_ON, Particle.WAX_ON, 7, 0.2)
+                return
+            }
+
+            // Waxed frame -> block rotation / item change.
+            if (waxed) {
+                event.isCancelled = true
+                deniedSound(frame)
+                return
+            }
+        }
+
         if (!isInvisible(frame)) return
         val hand = event.player.inventory.itemInMainHand
         if (frame.item.type == Material.AIR && hand.type != Material.AIR) {
             frame.setVisible(false)
         }
+    }
+
+    // var3 full lock: a waxed frame is invulnerable. LOWEST priority + one handler on
+    // each parent event catches its ByEntity subclass too (shared handler list), so
+    // cancelling here makes the mod's own ignoreCancelled=true handlers skip.
+    @EventHandler(priority = EventPriority.LOWEST)
+    fun onDamageFullLock(event: EntityDamageEvent) {
+        val frame = event.entity as? ItemFrame ?: return
+        if (!(plugin.enableWax && plugin.waxFullLock && isWaxed(frame))) return
+        event.isCancelled = true
+        // Click feedback only when a player is the one being denied (not fire/explosion).
+        if (event is EntityDamageByEntityEvent && event.damager is Player) deniedSound(frame)
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    fun onBreakFullLock(event: HangingBreakEvent) {
+        val frame = event.entity as? ItemFrame ?: return
+        if (!(plugin.enableWax && plugin.waxFullLock && isWaxed(frame))) return
+        event.isCancelled = true
+        if (event is HangingBreakByEntityEvent && event.remover is Player) deniedSound(frame)
     }
 
     // Placing a tagged frame item -> the new (empty) frame is tagged; visible until
@@ -173,5 +257,10 @@ class FrameListener(private val plugin: SimpleFramesPlugin) : Listener {
         val loc = frame.location
         frame.world.playSound(loc, sound, 1f, 1.5f)
         frame.world.spawnParticle(particle, loc, count, spread, spread, spread, 0.1)
+    }
+
+    // Feedback click when an interaction is denied on a waxed frame.
+    private fun deniedSound(frame: ItemFrame) {
+        frame.world.playSound(frame.location, Sound.ITEM_SHIELD_BLOCK, 0.8f, 1.5f)
     }
 }
