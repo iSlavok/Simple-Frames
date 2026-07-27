@@ -24,7 +24,7 @@ public class GlowItemFrameMixin {
             ItemFrame frame = ((ItemFrame) (Object) this);
             if (FrameTags.has(frame)) {
                 ItemStack item = cir.getReturnValue();
-                item.set(DataComponents.CUSTOM_NAME, Component.literal("Невидимая светящаяся рамка"));
+                item.set(DataComponents.ITEM_NAME, Component.literal(SimpleFramesMod.CONFIG.invisibleGlowFrameName));
                 item.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);
                 CustomData existing = item.get(DataComponents.CUSTOM_DATA);
                 CompoundTag nbt = (existing == null) ? new CompoundTag() : existing.copyTag();
@@ -67,14 +67,14 @@ public class GlowItemFrameMixin {
             if (FrameTags.has(frame)) {
                 ItemStack item = cir.getReturnValue();
                 //? if >=1.20.5 {
-                item.set(DataComponentTypes.ITEM_NAME, Text.of("Невидимая светящаяся рамка"));
+                item.set(DataComponentTypes.ITEM_NAME, Text.of(SimpleFramesMod.CONFIG.invisibleGlowFrameName));
                 item.set(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, true);
                 NbtComponent nbtCompound = item.get(DataComponentTypes.CUSTOM_DATA);
                 NbtCompound nbt = (nbtCompound == null) ? NbtComponent.DEFAULT.copyNbt() : nbtCompound.copyNbt();
                 nbt.putBoolean("invisibleframe", true);
                 item.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(nbt));
                 //?} else {
-                /*item.setCustomName(Text.of("Невидимая светящаяся рамка"));
+                /*item.setCustomName(online.slavok.frames.CompatTextKt.literalText(SimpleFramesMod.CONFIG.invisibleGlowFrameName).setStyle(net.minecraft.text.Style.EMPTY.withItalic(false)));
                 NbtCompound nbt = item.getOrCreateNbt();
                 nbt.putBoolean("invisibleframe", true);
                 // Glint without a visible enchant (pre-1.20.5 has no glint component).

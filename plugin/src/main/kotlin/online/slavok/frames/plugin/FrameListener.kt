@@ -1,5 +1,7 @@
 package online.slavok.frames.plugin
 
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.TextDecoration
 import org.bukkit.GameMode
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
@@ -18,6 +20,7 @@ import org.bukkit.event.player.PlayerInteractEntityEvent
 import org.bukkit.inventory.ItemFlag
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.Damageable
+import org.bukkit.inventory.meta.ItemMeta
 import org.bukkit.persistence.PersistentDataType
 
 class FrameListener(private val plugin: SimpleFramesPlugin) : Listener {
@@ -103,7 +106,7 @@ class FrameListener(private val plugin: SimpleFramesPlugin) : Listener {
         val meta = drop.itemMeta
         if (meta != null) {
             meta.persistentDataContainer.set(plugin.invisibleKey, PersistentDataType.BYTE, 1.toByte())
-            meta.setDisplayName(if (glow) "Невидимая светящаяся рамка" else "Невидимая рамка")
+            setFrameName(meta, if (glow) plugin.invisibleGlowFrameName else plugin.invisibleFrameName)
             // Glint without a visible enchant, version-stably (setEnchantmentGlintOverride
             // is 1.20.5+ only): a hidden dummy enchant, resolved by registry key so the
             // constant rename (DURABILITY -> UNBREAKING) doesn't matter across versions.
@@ -142,6 +145,12 @@ class FrameListener(private val plugin: SimpleFramesPlugin) : Listener {
         if (!meta.persistentDataContainer.has(plugin.invisibleKey, PersistentDataType.BYTE)) return
         tag(frame)
         syncVisibility(frame)
+    }
+
+    // Non-italic on every version: an Adventure component with the ITALIC decoration
+    // explicitly disabled (custom names render italic only when italic is left unset).
+    private fun setFrameName(meta: ItemMeta, name: String) {
+        meta.displayName(Component.text(name).decoration(TextDecoration.ITALIC, false))
     }
 
     private fun damageShears(item: ItemStack) {

@@ -4,3 +4,9 @@ doShearsBreak: true
 # Allow restoring invisible frames with leather. Also controls whether an invisible
 # frame keeps its invisibility when broken and placed again.
 fixWithLeather: true
+
+# Item name shown on an invisible frame.
+invisibleFrameName: "Invisible Frame"
+
+# Item name shown on an invisible glow frame.
+invisibleGlowFrameName: "Invisible Glow Frame"
