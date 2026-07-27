@@ -1,0 +1,33 @@
+name: build
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Pushing a PR branch fires both push and pull_request; scope + cancel to dedupe.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: gradle/actions/wrapper-validation@v4
+      # JDK 25 for the whole matrix: the Gradle daemon is pinned to 25
+      # (gradle/gradle-daemon-jvm.properties) so the unobfuscated 26.x nodes are
+      # registered, and JDK 25 cross-compiles the 17/21 targets via options.release.
+      - uses: actions/setup-java@v4
+        with:
+          java-version: 25
+          distribution: temurin
+      - uses: gradle/actions/setup-gradle@v4
+      # Stonecutter: one build task builds every version node; yarn anchors also
+      # run their gametests via `check`.
+      - run: ./gradlew build --stacktrace
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jars
+          path: versions/*/build/libs/*.jar
+          if-no-files-found: error
