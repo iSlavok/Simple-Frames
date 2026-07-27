@@ -1,5 +1,43 @@
 package online.slavok.frames.mixin;
 
+//? if >=1.22 {
+/*import online.slavok.frames.SimpleFramesMod;
+import online.slavok.frames.FrameTags;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.decoration.GlowItemFrame;
+import net.minecraft.world.entity.decoration.ItemFrame;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.CustomData;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+
+@Mixin(GlowItemFrame.class)
+public class GlowItemFrameMixin {
+    @Inject(at = @At("TAIL"), method = "getFrameItemStack", cancellable = true)
+    private void injectAsItem(CallbackInfoReturnable<ItemStack> cir) {
+        try {
+            if (!SimpleFramesMod.CONFIG.fixWithLeather) return;
+            ItemFrame frame = ((ItemFrame) (Object) this);
+            if (FrameTags.has(frame)) {
+                ItemStack item = cir.getReturnValue();
+                item.set(DataComponents.CUSTOM_NAME, Component.literal("Невидимая светящаяся рамка"));
+                item.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);
+                CustomData existing = item.get(DataComponents.CUSTOM_DATA);
+                CompoundTag nbt = (existing == null) ? new CompoundTag() : existing.copyTag();
+                nbt.putBoolean("invisibleframe", true);
+                item.set(DataComponents.CUSTOM_DATA, CustomData.of(nbt));
+                cir.setReturnValue(item);
+            }
+        } catch (Exception e) {
+            SimpleFramesMod.LOGGER.error("SimpleFrames error on GlowItemFrameMixin: " + e);
+        }
+    }
+}
+*///?} else {
 import online.slavok.frames.SimpleFramesMod;
 import online.slavok.frames.FrameTags;
 //? if >=1.20.5 {
@@ -45,3 +83,4 @@ public class GlowItemFrameMixin {
         }
     }
 }
+//?}

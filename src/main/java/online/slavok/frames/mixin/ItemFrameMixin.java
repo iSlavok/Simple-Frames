@@ -1,5 +1,116 @@
 package online.slavok.frames.mixin;
 
+//? if >=1.22 {
+/*import online.slavok.frames.SimpleFramesMod;
+import online.slavok.frames.FrameTags;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.decoration.ItemFrame;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.CustomData;
+import net.minecraft.world.phys.Vec3;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+
+@Mixin(ItemFrame.class)
+public class ItemFrameMixin {
+	@Inject(at = @At("HEAD"), method = "hurtServer", cancellable = true)
+	private void injectDamage(ServerLevel world, DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
+		try {
+			if (!(source.getEntity() instanceof Player player)) return;
+			ItemStack itemStackInHand = player.getMainHandItem();
+			ItemFrame frame = ((ItemFrame) (Object) this);
+			boolean isInvisibleFrame = FrameTags.has(frame);
+
+			if (itemStackInHand.getItem() == Items.SHEARS && !isInvisibleFrame) {
+				if (!player.isCreative() && SimpleFramesMod.CONFIG.doShearsBreak) {
+					if (itemStackInHand.getDamageValue() < itemStackInHand.getMaxDamage() - 1) {
+						itemStackInHand.setDamageValue(itemStackInHand.getDamageValue() + 1);
+					} else {
+						itemStackInHand.shrink(1);
+					}
+				}
+				world.playSound(null, frame.blockPosition(), SoundEvents.SNOW_GOLEM_SHEAR, SoundSource.NEUTRAL, 1f, 1.5f);
+				world.sendParticles(ParticleTypes.CLOUD, frame.getX(), frame.getY(), frame.getZ(), 3, 0.0, 0.0, 0.0, 0.1);
+				FrameTags.add(frame);
+				if (!frame.getItem().isEmpty()) {
+					frame.setInvisible(true);
+				}
+				cir.setReturnValue(true);
+				cir.cancel();
+				return;
+			}
+
+			if (itemStackInHand.getItem() == Items.LEATHER && isInvisibleFrame && SimpleFramesMod.CONFIG.fixWithLeather) {
+				if (!player.isCreative()) { itemStackInHand.shrink(1); }
+				world.playSound(null, frame.blockPosition(), SoundEvents.ITEM_FRAME_PLACE, SoundSource.NEUTRAL, 1f, 1.5f);
+				world.sendParticles(ParticleTypes.CRIT, frame.getX(), frame.getY(), frame.getZ(), 10, 0.3, 0.3, 0.3, 0.1);
+				frame.setInvisible(false);
+				FrameTags.remove(frame);
+				cir.setReturnValue(true);
+				cir.cancel();
+			}
+		} catch (Exception e) {
+			SimpleFramesMod.LOGGER.error("SimpleFrames error on ItemFrameMixin.hurtServer(): " + e);
+		}
+	}
+
+	@Inject(at = @At("RETURN"), method = "interact")
+	private void injectInteract(Player player, InteractionHand hand, Vec3 hitPos, CallbackInfoReturnable<InteractionResult> cir) {
+		updateState();
+	}
+
+	@Inject(at = @At("RETURN"), method = "dropItem")
+	private void injectDropItem(ServerLevel world, Entity entity, CallbackInfo ci) {
+		updateState();
+	}
+
+	@Inject(at = @At("TAIL"), method = "getFrameItemStack", cancellable = true)
+	private void injectAsItem(CallbackInfoReturnable<ItemStack> cir) {
+		try {
+			if (!SimpleFramesMod.CONFIG.fixWithLeather) return;
+			ItemFrame frame = ((ItemFrame) (Object) this);
+			if (FrameTags.has(frame)) {
+				ItemStack item = cir.getReturnValue();
+				item.set(DataComponents.CUSTOM_NAME, Component.literal("Невидимая рамка"));
+				item.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);
+				CustomData existing = item.get(DataComponents.CUSTOM_DATA);
+				CompoundTag nbt = (existing == null) ? new CompoundTag() : existing.copyTag();
+				nbt.putBoolean("invisibleframe", true);
+				item.set(DataComponents.CUSTOM_DATA, CustomData.of(nbt));
+				cir.setReturnValue(item);
+			}
+		} catch (Exception e) {
+			SimpleFramesMod.LOGGER.error("SimpleFrames error on ItemFrameMixin.getFrameItemStack(): " + e);
+		}
+	}
+
+	private void updateState() {
+		try {
+			ItemFrame frame = ((ItemFrame) (Object) this);
+			if (FrameTags.has(frame)) {
+				frame.setInvisible(!frame.getItem().isEmpty());
+			}
+		} catch (Exception e) {
+			SimpleFramesMod.LOGGER.error("SimpleFrames error on ItemFrameMixin.updateState(): " + e);
+		}
+	}
+}
+*///?} else {
 import online.slavok.frames.SimpleFramesMod;
 import online.slavok.frames.FrameTags;
 //? if >=1.20.5 {
@@ -139,3 +250,4 @@ public class ItemFrameMixin {
 		}
 	}
 }
+//?}

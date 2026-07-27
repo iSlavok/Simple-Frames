@@ -1,6 +1,10 @@
 package online.slavok.frames;
 
+//? if >=1.22 {
+/*import net.minecraft.world.entity.Entity;*/
+//?} else {
 import net.minecraft.entity.Entity;
+//?}
 
 /**
  * Marker tag used to identify frames the mod has made invisible.
@@ -8,8 +12,8 @@ import net.minecraft.entity.Entity;
  * The entity "tag" API was renamed piecemeal across versions
  * (getScoreboardTags/addScoreboardTag/removeScoreboardTag -> getCommandTags/
  * addCommandTag/removeCommandTag; get/add flipped at 1.19, remove at 1.20; 26+
- * uses the Mojang getTags/addTag/removeTag), so it is branched once here instead
- * of at every call site.
+ * uses the Mojang entityTags/addTag/removeTag), so it is branched once here
+ * instead of at every call site.
  */
 public final class FrameTags {
     public static final String INVISIBLE = "invisibleframe";
@@ -17,7 +21,9 @@ public final class FrameTags {
     private FrameTags() {}
 
     public static boolean has(Entity entity) {
-        //? if >=1.19 {
+        //? if >=1.22 {
+        /*return entity.entityTags().contains(INVISIBLE);*/
+        //?} elif >=1.19 {
         return entity.getCommandTags().contains(INVISIBLE);
         //?} else {
         /*return entity.getScoreboardTags().contains(INVISIBLE);*/
@@ -25,7 +31,9 @@ public final class FrameTags {
     }
 
     public static void add(Entity entity) {
-        //? if >=1.19 {
+        //? if >=1.22 {
+        /*entity.addTag(INVISIBLE);*/
+        //?} elif >=1.19 {
         entity.addCommandTag(INVISIBLE);
         //?} else {
         /*entity.addScoreboardTag(INVISIBLE);*/
@@ -33,7 +41,9 @@ public final class FrameTags {
     }
 
     public static void remove(Entity entity) {
-        //? if >=1.20 {
+        //? if >=1.22 {
+        /*entity.removeTag(INVISIBLE);*/
+        //?} elif >=1.20 {
         entity.removeCommandTag(INVISIBLE);
         //?} else {
         /*entity.removeScoreboardTag(INVISIBLE);*/
