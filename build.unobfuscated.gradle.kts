@@ -56,9 +56,11 @@ dependencies {
     // No mappings() — unobfuscated.
     implementation("net.fabricmc:fabric-loader:${property("loader_version")}")
     implementation("net.fabricmc.fabric-api:fabric-api:${u.fapi}")
-    // fabric-language-kotlin is a runtime-only language adapter (declared in
-    // fabric.mod.json depends and provided by the user). It is deliberately NOT on
-    // the compile classpath — our code never references flk classes.
+    // fabric-language-kotlin is a runtime-only language adapter: our code never
+    // references its classes, but the mod depends on it in fabric.mod.json, so the
+    // dev client/server needs it on the runtime classpath (runtimeOnly keeps it off
+    // the compile classpath). Players supply it themselves at install time.
+    runtimeOnly("net.fabricmc:fabric-language-kotlin:${u.flk}")
     // fabric-permissions-api is not published for 26+; commands fall back to the
     // vanilla operator level on this version (see the >=1.22 branch in Permission).
 
