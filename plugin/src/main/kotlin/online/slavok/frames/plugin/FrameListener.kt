@@ -2,8 +2,10 @@ package online.slavok.frames.plugin
 
 import org.bukkit.GameMode
 import org.bukkit.Material
+import org.bukkit.NamespacedKey
 import org.bukkit.Particle
 import org.bukkit.Sound
+import org.bukkit.enchantments.Enchantment
 import org.bukkit.entity.GlowItemFrame
 import org.bukkit.entity.ItemFrame
 import org.bukkit.entity.Player
@@ -13,6 +15,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent
 import org.bukkit.event.hanging.HangingBreakByEntityEvent
 import org.bukkit.event.hanging.HangingPlaceEvent
 import org.bukkit.event.player.PlayerInteractEntityEvent
+import org.bukkit.inventory.ItemFlag
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.Damageable
 import org.bukkit.persistence.PersistentDataType
@@ -95,11 +98,20 @@ class FrameListener(private val plugin: SimpleFramesPlugin) : Listener {
         val content = frame.item
         if (content.type != Material.AIR) world.dropItemNaturally(loc, content)
 
-        val frameMaterial = if (frame is GlowItemFrame) Material.GLOW_ITEM_FRAME else Material.ITEM_FRAME
-        val drop = ItemStack(frameMaterial)
+        val glow = frame is GlowItemFrame
+        val drop = ItemStack(if (glow) Material.GLOW_ITEM_FRAME else Material.ITEM_FRAME)
         val meta = drop.itemMeta
         if (meta != null) {
             meta.persistentDataContainer.set(plugin.invisibleKey, PersistentDataType.BYTE, 1.toByte())
+            meta.setDisplayName(if (glow) "Невидимая светящаяся рамка" else "Невидимая рамка")
+            // Glint without a visible enchant, version-stably (setEnchantmentGlintOverride
+            // is 1.20.5+ only): a hidden dummy enchant, resolved by registry key so the
+            // constant rename (DURABILITY -> UNBREAKING) doesn't matter across versions.
+            val glint = Enchantment.getByKey(NamespacedKey.minecraft("unbreaking"))
+            if (glint != null) {
+                meta.addEnchant(glint, 1, true)
+                meta.addItemFlags(ItemFlag.HIDE_ENCHANTS)
+            }
             drop.itemMeta = meta
         }
         world.dropItemNaturally(loc, drop)

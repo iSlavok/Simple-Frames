@@ -48,6 +48,9 @@ import net.minecraft.entity.decoration.GlowItemFrameEntity;
 import net.minecraft.entity.decoration.ItemFrameEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
+//? if <1.20.5 {
+/*import net.minecraft.nbt.NbtList;*/
+//?}
 import net.minecraft.text.Text;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -73,7 +76,11 @@ public class GlowItemFrameMixin {
                 //?} else {
                 /*item.setCustomName(Text.of("Невидимая светящаяся рамка"));
                 NbtCompound nbt = item.getOrCreateNbt();
-                nbt.putBoolean("invisibleframe", true);*/
+                nbt.putBoolean("invisibleframe", true);
+                // Glint without a visible enchant (pre-1.20.5 has no glint component).
+                NbtList frameGlint = new NbtList();
+                frameGlint.add(new NbtCompound());
+                nbt.put("Enchantments", frameGlint);*/
                 //?}
 
                 cir.setReturnValue(item);

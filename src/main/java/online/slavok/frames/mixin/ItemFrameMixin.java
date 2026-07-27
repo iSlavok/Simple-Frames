@@ -131,6 +131,9 @@ import net.minecraft.entity.decoration.ItemFrameEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
+//? if <1.20.5 {
+/*import net.minecraft.nbt.NbtList;*/
+//?}
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
@@ -249,7 +252,11 @@ public class ItemFrameMixin {
 				//?} else {
 				/*item.setCustomName(Text.of("Невидимая рамка"));
 				NbtCompound nbt = item.getOrCreateNbt();
-				nbt.putBoolean("invisibleframe", true);*/
+				nbt.putBoolean("invisibleframe", true);
+				// Glint without a visible enchant (pre-1.20.5 has no glint component).
+				NbtList frameGlint = new NbtList();
+				frameGlint.add(new NbtCompound());
+				nbt.put("Enchantments", frameGlint);*/
 				//?}
 
 				cir.setReturnValue(item);
