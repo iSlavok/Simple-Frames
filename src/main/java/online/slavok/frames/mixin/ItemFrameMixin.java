@@ -74,6 +74,7 @@ public class ItemFrameMixin {
 				FrameTags.remove(frame, FrameTags.INVISIBLE);
 				cir.setReturnValue(true);
 				cir.cancel();
+				return;
 			}
 
 			if (SimpleFramesMod.CONFIG.enableWax && FrameTags.has(frame, FrameTags.WAXED) && !frame.getItem().isEmpty()) {
@@ -288,6 +289,7 @@ public class ItemFrameMixin {
 
 				cir.setReturnValue(true);
 				cir.cancel();
+				return;
 			}
 
 			// var2: a normal player attack knocks the item out of a waxed frame -> remove

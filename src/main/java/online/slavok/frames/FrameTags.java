@@ -7,7 +7,8 @@ import net.minecraft.entity.Entity;
 //?}
 
 /**
- * Marker tag used to identify frames the mod has made invisible.
+ * Marker tags used to identify frames in either mod state: made invisible
+ * (shears) or waxed/rotation-locked (honeycomb).
  *
  * The entity "tag" API was renamed piecemeal across versions
  * (getScoreboardTags/addScoreboardTag/removeScoreboardTag -> getCommandTags/
