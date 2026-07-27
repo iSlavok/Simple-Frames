@@ -34,7 +34,7 @@ public class ItemFrameMixin {
 			if (source.getAttacker() == null || !source.getAttacker().isPlayer()) return;
 
 			PlayerEntity player = (PlayerEntity) source.getAttacker();
-			ItemStack itemStackInHand = player.getInventory().getStack(player.getInventory().selectedSlot);
+			ItemStack itemStackInHand = player.getMainHandStack();
 
 			ItemFrameEntity frame = ((ItemFrameEntity) (Object) this);
 			boolean isInvisibleFrame = frame.getCommandTags().contains("invisibleframe");
