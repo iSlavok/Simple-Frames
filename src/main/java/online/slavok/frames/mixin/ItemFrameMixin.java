@@ -10,9 +10,7 @@ import net.minecraft.entity.decoration.ItemFrameEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.network.packet.s2c.play.ParticleS2CPacket;
 import net.minecraft.particle.ParticleTypes;
-import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
@@ -29,7 +27,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(ItemFrameEntity.class)
 public class ItemFrameMixin {
 	@Inject(at = @At("HEAD"), method = "damage", cancellable = true)
+	//? if >=1.21.2 {
 	private void injectDamage(ServerWorld world, DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
+	//?} else {
+	/*private void injectDamage(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {*/
+	//?}
 		try {
 			if (source.getAttacker() == null || !source.getAttacker().isPlayer()) return;
 
@@ -37,6 +39,11 @@ public class ItemFrameMixin {
 			ItemStack itemStackInHand = player.getMainHandStack();
 
 			ItemFrameEntity frame = ((ItemFrameEntity) (Object) this);
+			//? if >=1.21.2 {
+			ServerWorld serverWorld = world;
+			//?} else {
+			/*ServerWorld serverWorld = (ServerWorld) frame.getWorld();*/
+			//?}
 			boolean isInvisibleFrame = frame.getCommandTags().contains("invisibleframe");
 
 			// Shears -> make frame invisible
@@ -48,31 +55,10 @@ public class ItemFrameMixin {
 						itemStackInHand.decrement(1);
 					}
 				}
-				frame.getWorld().playSound(
-						null,
-						frame.getBlockPos(),
-						SoundEvents.ENTITY_SNOW_GOLEM_SHEAR,
-						SoundCategory.NEUTRAL,
-						1f,
-						1.5f
-				);
-
-				SimpleFramesMod.sendPackets((ServerPlayerEntity) player, new ParticleS2CPacket(
-						ParticleTypes.CLOUD,
-						false,
-						false,
-						frame.getX(),
-						frame.getY(),
-						frame.getZ(),
-						0f,
-						0f,
-						0f,
-						0.1f,
-						3
-				));
+				serverWorld.playSound(null, frame.getBlockPos(), SoundEvents.ENTITY_SNOW_GOLEM_SHEAR, SoundCategory.NEUTRAL, 1f, 1.5f);
+				serverWorld.spawnParticles(ParticleTypes.CLOUD, frame.getX(), frame.getY(), frame.getZ(), 3, 0.0, 0.0, 0.0, 0.1);
 
 				frame.addCommandTag("invisibleframe");
-
 				if (!frame.getHeldItemStack().isEmpty()) {
 					frame.setInvisible(true);
 				}
@@ -85,31 +71,11 @@ public class ItemFrameMixin {
 			// Leather -> restore frame back to normal
 			if (itemStackInHand.getItem().getTranslationKey().equals("item.minecraft.leather") && isInvisibleFrame && SimpleFramesMod.CONFIG.fixWithLeather) {
 				if (!player.isCreative()) { itemStackInHand.decrement(1); }
-				frame.getWorld().playSound(
-						null,
-						frame.getBlockPos(),
-						SoundEvents.ENTITY_ITEM_FRAME_PLACE,
-						SoundCategory.NEUTRAL,
-						1f,
-						1.5f
-				);
+				serverWorld.playSound(null, frame.getBlockPos(), SoundEvents.ENTITY_ITEM_FRAME_PLACE, SoundCategory.NEUTRAL, 1f, 1.5f);
+				serverWorld.spawnParticles(ParticleTypes.CRIT, frame.getX(), frame.getY(), frame.getZ(), 10, 0.3, 0.3, 0.3, 0.1);
 
 				frame.setInvisible(false);
 				frame.removeCommandTag("invisibleframe");
-
-				SimpleFramesMod.sendPackets((ServerPlayerEntity) player, new ParticleS2CPacket(
-						ParticleTypes.CRIT,
-						false,
-						false,
-						frame.getX(),
-						frame.getY(),
-						frame.getZ(),
-						0.3f,
-						0.3f,
-						0.3f,
-						0.1f,
-						10
-				));
 
 				cir.setReturnValue(true);
 				cir.cancel();
@@ -125,7 +91,11 @@ public class ItemFrameMixin {
 	}
 
 	@Inject(at = @At("RETURN"), method = "dropHeldStack")
+	//? if >=1.21.2 {
 	private void injectDropItem(ServerWorld world, Entity entity, boolean dropSelf, CallbackInfo ci) {
+	//?} else {
+	/*private void injectDropItem(Entity entity, boolean dropSelf, CallbackInfo ci) {*/
+	//?}
 		updateState();
 	}
 

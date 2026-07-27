@@ -6,8 +6,6 @@ import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
 //?} else {
 /*import net.fabricmc.fabric.api.command.v1.CommandRegistrationCallback*/
 //?}
-import net.minecraft.network.packet.Packet
-import net.minecraft.server.network.ServerPlayerEntity
 import online.slavok.frames.commands.FrameCommand
 import org.slf4j.LoggerFactory
 
@@ -32,10 +30,5 @@ object SimpleFramesMod : ModInitializer {
             FrameCommand().register(dispatcher)
         }*/
         //?}
-    }
-
-    @JvmStatic
-    fun sendPackets(player: ServerPlayerEntity, packet: Packet<*>) {
-        player.networkHandler.sendPacket(packet)
     }
 }
