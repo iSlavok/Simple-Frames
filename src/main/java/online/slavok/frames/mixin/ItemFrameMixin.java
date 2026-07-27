@@ -34,7 +34,7 @@ public class ItemFrameMixin {
 			if (!(source.getEntity() instanceof Player player)) return;
 			ItemStack itemStackInHand = player.getMainHandItem();
 			ItemFrame frame = ((ItemFrame) (Object) this);
-			boolean isInvisibleFrame = FrameTags.has(frame);
+			boolean isInvisibleFrame = FrameTags.has(frame, FrameTags.INVISIBLE);
 
 			if (itemStackInHand.getItem() == Items.SHEARS && !isInvisibleFrame) {
 				if (!player.isCreative() && SimpleFramesMod.CONFIG.doShearsBreak) {
@@ -46,7 +46,7 @@ public class ItemFrameMixin {
 				}
 				world.playSound(null, frame.blockPosition(), SoundEvents.SNOW_GOLEM_SHEAR, SoundSource.NEUTRAL, 1f, 1.5f);
 				world.sendParticles(ParticleTypes.CLOUD, frame.getX(), frame.getY(), frame.getZ(), 3, 0.0, 0.0, 0.0, 0.1);
-				FrameTags.add(frame);
+				FrameTags.add(frame, FrameTags.INVISIBLE);
 				if (!frame.getItem().isEmpty()) {
 					frame.setInvisible(true);
 				}
@@ -60,7 +60,7 @@ public class ItemFrameMixin {
 				world.playSound(null, frame.blockPosition(), SoundEvents.ITEM_FRAME_PLACE, SoundSource.NEUTRAL, 1f, 1.5f);
 				world.sendParticles(ParticleTypes.CRIT, frame.getX(), frame.getY(), frame.getZ(), 10, 0.3, 0.3, 0.3, 0.1);
 				frame.setInvisible(false);
-				FrameTags.remove(frame);
+				FrameTags.remove(frame, FrameTags.INVISIBLE);
 				cir.setReturnValue(true);
 				cir.cancel();
 			}
@@ -92,7 +92,7 @@ public class ItemFrameMixin {
 		try {
 			if (!SimpleFramesMod.CONFIG.fixWithLeather) return;
 			ItemFrame frame = ((ItemFrame) (Object) this);
-			if (FrameTags.has(frame)) {
+			if (FrameTags.has(frame, FrameTags.INVISIBLE)) {
 				ItemStack item = cir.getReturnValue();
 				item.set(DataComponents.ITEM_NAME, Component.literal(SimpleFramesMod.CONFIG.invisibleFrameName));
 				item.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);
@@ -110,7 +110,7 @@ public class ItemFrameMixin {
 	private void updateState() {
 		try {
 			ItemFrame frame = ((ItemFrame) (Object) this);
-			if (FrameTags.has(frame)) {
+			if (FrameTags.has(frame, FrameTags.INVISIBLE)) {
 				frame.setInvisible(!frame.getItem().isEmpty());
 			}
 		} catch (Exception e) {
@@ -169,7 +169,7 @@ public class ItemFrameMixin {
 			/*if (!(frame.getWorld() instanceof ServerWorld)) return;
 			ServerWorld serverWorld = (ServerWorld) frame.getWorld();*/
 			//?}
-			boolean isInvisibleFrame = FrameTags.has(frame);
+			boolean isInvisibleFrame = FrameTags.has(frame, FrameTags.INVISIBLE);
 
 			// Shears -> make frame invisible
 			if (itemStackInHand.getItem().getTranslationKey().equals("item.minecraft.shears") && !isInvisibleFrame) {
@@ -183,7 +183,7 @@ public class ItemFrameMixin {
 				serverWorld.playSound(null, frame.getBlockPos(), SoundEvents.ENTITY_SNOW_GOLEM_SHEAR, SoundCategory.NEUTRAL, 1f, 1.5f);
 				serverWorld.spawnParticles(ParticleTypes.CLOUD, frame.getX(), frame.getY(), frame.getZ(), 3, 0.0, 0.0, 0.0, 0.1);
 
-				FrameTags.add(frame);
+				FrameTags.add(frame, FrameTags.INVISIBLE);
 				if (!frame.getHeldItemStack().isEmpty()) {
 					frame.setInvisible(true);
 				}
@@ -200,7 +200,7 @@ public class ItemFrameMixin {
 				serverWorld.spawnParticles(ParticleTypes.CRIT, frame.getX(), frame.getY(), frame.getZ(), 10, 0.3, 0.3, 0.3, 0.1);
 
 				frame.setInvisible(false);
-				FrameTags.remove(frame);
+				FrameTags.remove(frame, FrameTags.INVISIBLE);
 
 				cir.setReturnValue(true);
 				cir.cancel();
@@ -241,7 +241,7 @@ public class ItemFrameMixin {
 		try {
 			if (!SimpleFramesMod.CONFIG.fixWithLeather) return;
 			ItemFrameEntity frame = ((ItemFrameEntity) (Object) this);
-			if (FrameTags.has(frame)) {
+			if (FrameTags.has(frame, FrameTags.INVISIBLE)) {
 				ItemStack item = cir.getReturnValue();
 				//? if >=1.20.5 {
 				item.set(DataComponentTypes.ITEM_NAME, Text.of(SimpleFramesMod.CONFIG.invisibleFrameName));
@@ -270,7 +270,7 @@ public class ItemFrameMixin {
 	private void updateState() {
 		try {
 			ItemFrameEntity frame = ((ItemFrameEntity) (Object) this);
-			if (FrameTags.has(frame)) {
+			if (FrameTags.has(frame, FrameTags.INVISIBLE)) {
 				frame.setInvisible(!frame.getHeldItemStack().isEmpty());
 			}
 		} catch (Exception e) {

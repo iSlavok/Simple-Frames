@@ -19,6 +19,19 @@ class Config {
     @JvmField
     var fixWithLeather = true
 
+    // Enable the wax feature: honeycomb locks an item's rotation, an axe unlocks it.
+    @JvmField
+    var enableWax = true
+
+    // false = waxing blocks only right-click (rotation / item change);
+    // true  = a waxed frame is also fully invulnerable (item can't be knocked out, frame can't break).
+    @JvmField
+    var waxFullLock = false
+
+    // Do axes lose durability when removing wax.
+    @JvmField
+    var doAxeBreak = true
+
     // Item names shown on the invisible-frame item.
     @JvmField
     var invisibleFrameName = "Invisible Item Frame"
@@ -40,6 +53,9 @@ class Config {
                     when (key) {
                         "doShearsBreak" -> doShearsBreak = value.toBoolean()
                         "fixWithLeather" -> fixWithLeather = value.toBoolean()
+                        "enableWax" -> enableWax = value.toBoolean()
+                        "waxFullLock" -> waxFullLock = value.toBoolean()
+                        "doAxeBreak" -> doAxeBreak = value.toBoolean()
                         "invisibleFrameName" -> if (value.isNotEmpty()) invisibleFrameName = value
                         "invisibleGlowFrameName" -> if (value.isNotEmpty()) invisibleGlowFrameName = value
                     }
@@ -61,6 +77,12 @@ class Config {
             writer.write("doShearsBreak=$doShearsBreak\n\n")
             writer.write("# True if you want to reverse invisible frames back with leather\n")
             writer.write("fixWithLeather=$fixWithLeather\n\n")
+            writer.write("# Enable the wax feature (honeycomb locks item rotation, axe unlocks)\n")
+            writer.write("enableWax=$enableWax\n\n")
+            writer.write("# false = block only rotation/right-click; true = waxed frame is fully invulnerable\n")
+            writer.write("waxFullLock=$waxFullLock\n\n")
+            writer.write("# Do axes lose durability when removing wax\n")
+            writer.write("doAxeBreak=$doAxeBreak\n\n")
             writer.write("# Item name shown on an invisible frame\n")
             writer.write("invisibleFrameName=$invisibleFrameName\n\n")
             writer.write("# Item name shown on an invisible glow frame\n")

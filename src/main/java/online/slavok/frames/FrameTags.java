@@ -17,36 +17,37 @@ import net.minecraft.entity.Entity;
  */
 public final class FrameTags {
     public static final String INVISIBLE = "invisibleframe";
+    public static final String WAXED = "waxedframe";
 
     private FrameTags() {}
 
-    public static boolean has(Entity entity) {
+    public static boolean has(Entity entity, String tag) {
         //? if >=1.22 {
-        /*return entity.entityTags().contains(INVISIBLE);*/
+        /*return entity.entityTags().contains(tag);*/
         //?} elif >=1.19 {
-        return entity.getCommandTags().contains(INVISIBLE);
+        return entity.getCommandTags().contains(tag);
         //?} else {
-        /*return entity.getScoreboardTags().contains(INVISIBLE);*/
+        /*return entity.getScoreboardTags().contains(tag);*/
         //?}
     }
 
-    public static void add(Entity entity) {
+    public static void add(Entity entity, String tag) {
         //? if >=1.22 {
-        /*entity.addTag(INVISIBLE);*/
+        /*entity.addTag(tag);*/
         //?} elif >=1.19 {
-        entity.addCommandTag(INVISIBLE);
+        entity.addCommandTag(tag);
         //?} else {
-        /*entity.addScoreboardTag(INVISIBLE);*/
+        /*entity.addScoreboardTag(tag);*/
         //?}
     }
 
-    public static void remove(Entity entity) {
+    public static void remove(Entity entity, String tag) {
         //? if >=1.22 {
-        /*entity.removeTag(INVISIBLE);*/
+        /*entity.removeTag(tag);*/
         //?} elif >=1.20 {
-        entity.removeCommandTag(INVISIBLE);
+        entity.removeCommandTag(tag);
         //?} else {
-        /*entity.removeScoreboardTag(INVISIBLE);*/
+        /*entity.removeScoreboardTag(tag);*/
         //?}
     }
 }
