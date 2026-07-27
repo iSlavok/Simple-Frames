@@ -21,10 +21,10 @@ class Config {
 
     // Item names shown on the invisible-frame item.
     @JvmField
-    var invisibleFrameName = "Invisible Frame"
+    var invisibleFrameName = "Invisible Item Frame"
 
     @JvmField
-    var invisibleGlowFrameName = "Invisible Glow Frame"
+    var invisibleGlowFrameName = "Invisible Glow Item Frame"
 
     fun load() {
         try {
