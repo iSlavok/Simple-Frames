@@ -19,19 +19,29 @@ class Config {
     @JvmField
     var fixWithLeather = true
 
+    // Item names shown on the invisible-frame item.
+    @JvmField
+    var invisibleFrameName = "Invisible Frame"
+
+    @JvmField
+    var invisibleGlowFrameName = "Invisible Glow Frame"
+
     fun load() {
         try {
             val br = BufferedReader(FileReader(configFile))
             var line = br.readLine()
             while (line != null) {
                 if (!line.startsWith("#") && line.contains("=")) {
-                    line = line.replace(" ", "")
-                    val key = line.substring(0, line.indexOf("="))
-                    var value = line.substring(line.indexOf("=") + 1)
+                    val idx = line.indexOf("=")
+                    val key = line.substring(0, idx).trim()
+                    var value = line.substring(idx + 1)
                     if (value.contains("#")) value = value.substring(0, value.indexOf("#"))
+                    value = value.trim()
                     when (key) {
                         "doShearsBreak" -> doShearsBreak = value.toBoolean()
                         "fixWithLeather" -> fixWithLeather = value.toBoolean()
+                        "invisibleFrameName" -> if (value.isNotEmpty()) invisibleFrameName = value
+                        "invisibleGlowFrameName" -> if (value.isNotEmpty()) invisibleGlowFrameName = value
                     }
                 }
                 line = br.readLine()
@@ -50,7 +60,11 @@ class Config {
             writer.write("# Do shears get damaged and break\n")
             writer.write("doShearsBreak=$doShearsBreak\n\n")
             writer.write("# True if you want to reverse invisible frames back with leather\n")
-            writer.write("fixWithLeather=$fixWithLeather")
+            writer.write("fixWithLeather=$fixWithLeather\n\n")
+            writer.write("# Item name shown on an invisible frame\n")
+            writer.write("invisibleFrameName=$invisibleFrameName\n\n")
+            writer.write("# Item name shown on an invisible glow frame\n")
+            writer.write("invisibleGlowFrameName=$invisibleGlowFrameName")
             writer.close()
             SimpleFramesMod.LOGGER.info("Simple Frames Config file created with path: " + configFile.absolutePath)
         } catch (e: IOException) {

@@ -18,6 +18,7 @@ import org.bukkit.event.player.PlayerInteractEntityEvent
 import org.bukkit.inventory.ItemFlag
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.Damageable
+import org.bukkit.inventory.meta.ItemMeta
 import org.bukkit.persistence.PersistentDataType
 
 class FrameListener(private val plugin: SimpleFramesPlugin) : Listener {
@@ -103,7 +104,7 @@ class FrameListener(private val plugin: SimpleFramesPlugin) : Listener {
         val meta = drop.itemMeta
         if (meta != null) {
             meta.persistentDataContainer.set(plugin.invisibleKey, PersistentDataType.BYTE, 1.toByte())
-            meta.setDisplayName(if (glow) "Невидимая светящаяся рамка" else "Невидимая рамка")
+            setFrameName(meta, if (glow) plugin.invisibleGlowFrameName else plugin.invisibleFrameName)
             // Glint without a visible enchant, version-stably (setEnchantmentGlintOverride
             // is 1.20.5+ only): a hidden dummy enchant, resolved by registry key so the
             // constant rename (DURABILITY -> UNBREAKING) doesn't matter across versions.
@@ -142,6 +143,17 @@ class FrameListener(private val plugin: SimpleFramesPlugin) : Listener {
         if (!meta.persistentDataContainer.has(plugin.invisibleKey, PersistentDataType.BYTE)) return
         tag(frame)
         syncVisibility(frame)
+    }
+
+    // Non-italic item name via ITEM_NAME (setItemName, Spigot 1.20.5+); older servers
+    // fall back to the display name (italic — unavoidable there).
+    private fun setFrameName(meta: ItemMeta, name: String) {
+        try {
+            meta.setItemName(name)
+        } catch (e: NoSuchMethodError) {
+            @Suppress("DEPRECATION")
+            meta.setDisplayName(name)
+        }
     }
 
     private fun damageShears(item: ItemStack) {

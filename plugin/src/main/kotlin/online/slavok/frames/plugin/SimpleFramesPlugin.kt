@@ -14,11 +14,17 @@ open class SimpleFramesPlugin : JavaPlugin() {
         private set
     var fixWithLeather = true
         private set
+    var invisibleFrameName = "Invisible Frame"
+        private set
+    var invisibleGlowFrameName = "Invisible Glow Frame"
+        private set
 
     override fun onEnable() {
         saveDefaultConfig()
         doShearsBreak = config.getBoolean("doShearsBreak", true)
         fixWithLeather = config.getBoolean("fixWithLeather", true)
+        invisibleFrameName = config.getString("invisibleFrameName", invisibleFrameName) ?: invisibleFrameName
+        invisibleGlowFrameName = config.getString("invisibleGlowFrameName", invisibleGlowFrameName) ?: invisibleGlowFrameName
         invisibleKey = NamespacedKey(this, "invisibleframe")
 
         server.pluginManager.registerEvents(FrameListener(this), this)
