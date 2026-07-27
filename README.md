@@ -74,9 +74,9 @@ Requires a JDK matching the newest target you build (**JDK 25** to build the 26.
 
 Each anchor's jar lands in `versions/<anchor>/build/libs/`.
 
-## Server plugin (Bukkit / Spigot / Paper / Purpur / Folia)
+## Server plugin (Paper / Purpur / Folia)
 
-The same behaviour is also available as a **server plugin** (no client mod needed on either side) in [`plugin/`](plugin) — a standalone Gradle build using the Bukkit API. One jar runs on Spigot, Paper, Purpur and Folia (`folia-supported`), across MC 1.18+.
+The same behaviour is also available as a **server plugin** (no client mod needed on either side) in [`plugin/`](plugin) — a standalone Gradle build on the Paper API. One jar runs on Paper, Purpur and Folia (`folia-supported`), across MC 1.18+. (Paper-family only: it uses the Adventure API so the item name renders non-italic on every version — pure Spigot doesn't bundle Adventure.)
 
 ```bash
 ./gradlew -p plugin build       # build + tests (MockBukkit)

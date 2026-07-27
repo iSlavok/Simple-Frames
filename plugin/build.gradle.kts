@@ -19,9 +19,12 @@ repositories {
 }
 
 dependencies {
-    // Provided by the server — never bundled. One jar built against the Bukkit API
-    // runs on Spigot/Paper/Purpur/Folia.
-    compileOnly("org.spigotmc:spigot-api:1.21.4-R0.1-SNAPSHOT")
+    // Provided by the server — never bundled. Paper API (superset of Bukkit, bundles
+    // Adventure) so the item name can be set non-italic on every version via
+    // displayName(Component). Runs on Paper/Purpur/Folia (Paper-family cores).
+    // 1.20.4 is the last Java-17 Paper API: it already has Adventure displayName, and
+    // a Java-17 jar loads on 1.18-1.20.4 servers (Java 17) as well as newer ones.
+    compileOnly("io.papermc.paper:paper-api:1.20.4-R0.1-SNAPSHOT")
 
     // JUnit 6 BOM — MockBukkit-v1.21 is built against JUnit 6.
     testImplementation(platform("org.junit:junit-bom:6.0.3"))
@@ -86,7 +89,7 @@ publishMods {
     version.set("${project.version}+plugin")
     displayName.set("Simple Frames (plugin) ${project.version}")
     type.set(me.modmuss50.mpp.ReleaseType.STABLE)
-    modLoaders.addAll("bukkit", "spigot", "paper", "purpur", "folia")
+    modLoaders.addAll("paper", "purpur", "folia")
     changelog.set("See https://github.com/iSlavok/Simple-Frames/releases")
     modrinth {
         projectId.set(providers.gradleProperty("modrinth_id"))

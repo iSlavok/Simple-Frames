@@ -1,5 +1,7 @@
 package online.slavok.frames.plugin
 
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.TextDecoration
 import org.bukkit.GameMode
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
@@ -145,15 +147,10 @@ class FrameListener(private val plugin: SimpleFramesPlugin) : Listener {
         syncVisibility(frame)
     }
 
-    // Non-italic item name via ITEM_NAME (setItemName, Spigot 1.20.5+); older servers
-    // fall back to the display name (italic — unavoidable there).
+    // Non-italic on every version: an Adventure component with the ITALIC decoration
+    // explicitly disabled (custom names render italic only when italic is left unset).
     private fun setFrameName(meta: ItemMeta, name: String) {
-        try {
-            meta.setItemName(name)
-        } catch (e: NoSuchMethodError) {
-            @Suppress("DEPRECATION")
-            meta.setDisplayName(name)
-        }
+        meta.displayName(Component.text(name).decoration(TextDecoration.ITALIC, false))
     }
 
     private fun damageShears(item: ItemStack) {
