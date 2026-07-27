@@ -39,59 +39,54 @@ class FrameListener(private val plugin: SimpleFramesPlugin) : Listener {
         effects(frame, Sound.ENTITY_ITEM_FRAME_PLACE, Particle.CRIT, 10, 0.3)
     }
 
-    // Left-click (attack): shears -> invisible, leather -> restore, and taking the
-    // item out of an invisible frame makes it visible again.
-    @EventHandler(ignoreCancelled = true)
-    fun onDamage(event: EntityDamageByEntityEvent) {
-        val frame = event.entity as? ItemFrame ?: return
-        val player = event.damager as? Player ?: return
+    /**
+     * Left-click (attack) with shears/leather. Works for both events: a frame that
+     * holds an item fires EntityDamageByEntityEvent, an empty frame fires
+     * HangingBreakByEntityEvent — either way this makes it (in)visible instead of
+     * dropping/breaking. Returns true (and cancels via [cancel]) when it acted.
+     */
+    private fun tryTool(frame: ItemFrame, player: Player, cancel: () -> Unit): Boolean {
         val hand = player.inventory.itemInMainHand
-
         if (hand.type == Material.SHEARS && !isInvisible(frame)) {
-            event.isCancelled = true
+            cancel()
             if (player.gameMode != GameMode.CREATIVE && plugin.doShearsBreak) damageShears(hand)
             tag(frame)
             syncVisibility(frame)
             effects(frame, Sound.ENTITY_SNOW_GOLEM_SHEAR, Particle.CLOUD, 3, 0.0)
-            return
+            return true
         }
-
         if (hand.type == Material.LEATHER && isInvisible(frame) && plugin.fixWithLeather) {
-            event.isCancelled = true
+            cancel()
             if (player.gameMode != GameMode.CREATIVE) hand.amount -= 1
             restore(frame)
-            return
+            return true
         }
-
-        // Attacking an invisible frame that holds an item removes the item (vanilla),
-        // leaving it empty -> it must become visible.
-        if (isInvisible(frame) && frame.item.type != Material.AIR) {
-            frame.setVisible(true)
-        }
+        return false
     }
 
-    // Right-click just places an item into the frame (vanilla). Restoring is on
-    // left-click (attack) with leather, mirroring shears — so leather can still be
-    // put into a frame normally. Placing an item into an empty invisible frame
-    // hides it again.
+    // Attacking a frame that HOLDS an item: shears/leather, or taking the item out
+    // (which empties it, so it must become visible).
     @EventHandler(ignoreCancelled = true)
-    fun onInteract(event: PlayerInteractEntityEvent) {
-        val frame = event.rightClicked as? ItemFrame ?: return
-        if (!isInvisible(frame)) return
-        val hand = event.player.inventory.itemInMainHand
-        if (frame.item.type == Material.AIR && hand.type != Material.AIR) {
-            frame.setVisible(false)
+    fun onDamage(event: EntityDamageByEntityEvent) {
+        val frame = event.entity as? ItemFrame ?: return
+        val player = event.damager as? Player ?: return
+        if (tryTool(frame, player) { event.isCancelled = true }) return
+
+        if (isInvisible(frame) && frame.item.type != Material.AIR) {
+            frame.setVisible(true) // the item is about to be removed -> visible
         }
     }
 
-    // Persist: a player breaking an invisible frame drops a tagged frame item so
-    // placing it again keeps it invisible. Tied to fixWithLeather like the mod.
+    // Attacking/breaking an EMPTY frame: shears/leather act here (an empty frame
+    // breaks instead of firing the damage event). Otherwise persist an invisible
+    // frame as a tagged dropped item.
     @EventHandler(ignoreCancelled = true)
     fun onBreak(event: HangingBreakByEntityEvent) {
         val frame = event.entity as? ItemFrame ?: return
-        if (!plugin.fixWithLeather || !isInvisible(frame)) return
-        val remover = event.remover
-        if (remover !is Player || remover.gameMode == GameMode.CREATIVE) return
+        val player = event.remover as? Player ?: return
+        if (tryTool(frame, player) { event.isCancelled = true }) return
+
+        if (!plugin.fixWithLeather || !isInvisible(frame) || player.gameMode == GameMode.CREATIVE) return
 
         event.isCancelled = true
         val world = frame.world
@@ -112,8 +107,21 @@ class FrameListener(private val plugin: SimpleFramesPlugin) : Listener {
         frame.remove()
     }
 
-    // Placing a tagged frame item -> the new (empty) frame is tagged; visible until an
-    // item is put in it.
+    // Right-click places an item into the frame (vanilla); an item in an invisible
+    // frame hides it. Restoring is left-click only (see tryTool), so leather can
+    // still be placed into a frame normally.
+    @EventHandler(ignoreCancelled = true)
+    fun onInteract(event: PlayerInteractEntityEvent) {
+        val frame = event.rightClicked as? ItemFrame ?: return
+        if (!isInvisible(frame)) return
+        val hand = event.player.inventory.itemInMainHand
+        if (frame.item.type == Material.AIR && hand.type != Material.AIR) {
+            frame.setVisible(false)
+        }
+    }
+
+    // Placing a tagged frame item -> the new (empty) frame is tagged; visible until
+    // an item is put in it.
     @EventHandler(ignoreCancelled = true)
     fun onPlace(event: HangingPlaceEvent) {
         val frame = event.entity as? ItemFrame ?: return

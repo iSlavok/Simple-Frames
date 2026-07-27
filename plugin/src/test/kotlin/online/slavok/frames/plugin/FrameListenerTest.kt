@@ -8,6 +8,7 @@ import org.bukkit.World
 import org.bukkit.entity.ItemFrame
 import org.bukkit.entity.Player
 import org.bukkit.event.entity.EntityDamageByEntityEvent
+import org.bukkit.event.hanging.HangingBreakByEntityEvent
 import org.bukkit.event.player.PlayerInteractEntityEvent
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.PlayerInventory
@@ -66,6 +67,40 @@ class FrameListenerTest {
         whenever(event.entity).thenReturn(frame)
         whenever(event.damager).thenReturn(player)
         return event
+    }
+
+    private fun breakEvent(frame: ItemFrame, player: Player): HangingBreakByEntityEvent {
+        val event = mock<HangingBreakByEntityEvent>()
+        whenever(event.entity).thenReturn(frame)
+        whenever(event.remover).thenReturn(player)
+        return event
+    }
+
+    // Empty frame: attacking fires the break event, not the damage event.
+    @Test
+    fun `shears on an empty frame make it invisible instead of breaking it`() {
+        val plugin = mockPlugin()
+        val (frame, pdc) = mockFrame(invisible = false, itemType = Material.AIR)
+        val event = breakEvent(frame, mockPlayer(Material.SHEARS))
+
+        FrameListener(plugin).onBreak(event)
+
+        verify(event).isCancelled = true // not broken
+        verify(pdc).set(key, PersistentDataType.BYTE, 1.toByte())
+        verify(frame).setVisible(true) // empty -> visible
+    }
+
+    @Test
+    fun `leather on an empty invisible frame restores it instead of breaking it`() {
+        val plugin = mockPlugin()
+        val (frame, pdc) = mockFrame(invisible = true, itemType = Material.AIR)
+        val event = breakEvent(frame, mockPlayer(Material.LEATHER))
+
+        FrameListener(plugin).onBreak(event)
+
+        verify(event).isCancelled = true
+        verify(pdc).remove(key)
+        verify(frame).setVisible(true)
     }
 
     @Test
