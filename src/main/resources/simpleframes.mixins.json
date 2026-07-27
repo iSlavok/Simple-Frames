@@ -1,0 +1,16 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "online.slavok.frames.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "DecorationItemMixin",
+    "GlowItemFrameMixin",
+    "ItemFrameMixin"
+  ],
+  "client": [
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

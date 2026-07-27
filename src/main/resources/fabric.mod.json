@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "id": "simpleframes",
+  "version": "${version}",
+
+  "name": "Simple Frames",
+  "description": "Make your item frames invisible with shears, and restore them with leather.",
+  "authors": [
+    "iSlavok"
+  ],
+  "contact": {
+    "homepage": "https://modrinth.com/mod/simple-frames",
+    "sources": "https://github.com/iSlavok/Simple-Frames",
+    "issues": "https://github.com/iSlavok/Simple-Frames/issues"
+  },
+
+  "license": "MIT",
+  "icon": "assets/simpleframes/icon.png",
+
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      {
+        "adapter": "kotlin",
+        "value": "online.slavok.frames.SimpleFramesMod"
+      }
+    ]
+  },
+  "mixins": [
+    "simpleframes.mixins.json"
+  ],
+
+  "depends": {
+    "fabricloader": ">=0.14.8",
+    "fabric": "*",
+    "fabric-language-kotlin": ">=1.12.0",
+    "minecraft": ">=1.21.4",
+    "java": ">=21"
+  }
+}
