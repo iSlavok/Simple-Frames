@@ -69,6 +69,14 @@ public class ItemFrameMixin {
 		}
 	}
 
+	// Sync visibility after any damage (e.g. taking the item out by attacking):
+	// an emptied invisible frame must become visible. Covers versions where item
+	// removal doesn't route through dropItem.
+	@Inject(at = @At("RETURN"), method = "hurtServer")
+	private void syncAfterDamage(ServerLevel world, DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
+		updateState();
+	}
+
 	@Inject(at = @At("RETURN"), method = "interact")
 	private void injectInteract(Player player, InteractionHand hand, Vec3 hitPos, CallbackInfoReturnable<InteractionResult> cir) {
 		updateState();
@@ -196,6 +204,18 @@ public class ItemFrameMixin {
 		} catch (Exception e) {
 			SimpleFramesMod.LOGGER.error("SimpleFrames error on ItemFrameMixin.damage(): " + e);
 		}
+	}
+
+	// Sync visibility after any damage (e.g. taking the item out by attacking):
+	// an emptied invisible frame must become visible. Covers versions where item
+	// removal doesn't route through dropHeldStack.
+	@Inject(at = @At("RETURN"), method = "damage")
+	//? if >=1.21.2 {
+	private void syncAfterDamage(ServerWorld world, DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
+	//?} else {
+	/*private void syncAfterDamage(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {*/
+	//?}
+		updateState();
 	}
 
 	@Inject(at = @At("RETURN"), method = "interact")
