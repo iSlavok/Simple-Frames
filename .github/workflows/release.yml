@@ -12,31 +12,37 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # JDK 25 so the unobfuscated 26.x nodes are registered and included.
+      # JDK 25 so the mod's 26.x nodes are included; the plugin's JDK 21 toolchain is
+      # auto-provisioned by the foojay resolver in plugin/settings.gradle.kts.
       - uses: actions/setup-java@v4
         with:
           java-version: 25
           distribution: temurin
       - uses: gradle/actions/setup-gradle@v4
 
-      # Version comes from the tag (v1.0.2 -> 1.0.2), overriding mod_version.
-      # workflow_dispatch has no tag, so fall back to the gradle.properties default.
+      # Version comes from the tag (v1.0.2 -> 1.0.2), overriding mod_version /
+      # plugin_version. workflow_dispatch has no tag -> keep the gradle.properties defaults.
       - name: Resolve version from tag
         id: ver
         run: |
           if [ "$GITHUB_REF_TYPE" = "tag" ]; then
-            echo "arg=-Pmod_version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+            V="${GITHUB_REF_NAME#v}"
+            echo "modarg=-Pmod_version=$V" >> "$GITHUB_OUTPUT"
+            echo "pluginarg=-Pplugin_version=$V" >> "$GITHUB_OUTPUT"
           else
-            echo "arg=" >> "$GITHUB_OUTPUT"
+            echo "modarg=" >> "$GITHUB_OUTPUT"
+            echo "pluginarg=" >> "$GITHUB_OUTPUT"
           fi
 
-      - run: ./gradlew assemble ${{ steps.ver.outputs.arg }} --stacktrace   # jars only, no gametest boot
+      - run: ./gradlew assemble ${{ steps.ver.outputs.modarg }} --stacktrace              # mod jars (all 9 anchors)
+      - run: ./gradlew -p plugin assemble ${{ steps.ver.outputs.pluginarg }} --stacktrace  # plugin jar
 
-      # softprops has no exclude patterns -> stage only the loadable jars.
+      # softprops has no exclude patterns -> stage only the loadable (non-sources) jars.
       - name: Collect release jars
         run: |
           mkdir -p release-jars
           find versions -path '*/build/libs/*.jar' ! -name '*-sources.jar' -exec cp {} release-jars/ \;
+          find plugin/build/libs -name '*.jar' ! -name '*-sources.jar' -exec cp {} release-jars/ \;
           ls -la release-jars
       - uses: softprops/action-gh-release@v2
         with:
@@ -44,7 +50,12 @@ jobs:
           fail_on_unmatched_files: true
           generate_release_notes: true
 
-      - name: Publish to Modrinth
+      - name: Publish mod to Modrinth
         env:
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
-        run: ./gradlew publishMods ${{ steps.ver.outputs.arg }} --stacktrace
+        run: ./gradlew publishMods ${{ steps.ver.outputs.modarg }} --stacktrace
+
+      - name: Publish plugin to Modrinth
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+        run: ./gradlew -p plugin publishMods ${{ steps.ver.outputs.pluginarg }} --stacktrace

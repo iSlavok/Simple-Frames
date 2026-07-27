@@ -1,0 +1,16 @@
+name: SimpleFrames
+version: '${version}'
+main: online.slavok.frames.plugin.SimpleFramesPlugin
+api-version: '1.18'
+folia-supported: true
+author: iSlavok
+description: Make item frames invisible with shears, and restore them with leather.
+commands:
+  simpleframes:
+    description: Configure Simple Frames.
+    usage: /simpleframes <doShearsBreak|doLeatherFix> [true|false]
+    permission: simpleframes.command
+permissions:
+  simpleframes.command:
+    description: Access to the Simple Frames configuration commands.
+    default: op
