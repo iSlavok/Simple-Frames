@@ -35,3 +35,7 @@ run/
 # superpowers working docs (local only)
 
 docs/superpowers/
+
+# superpowers SDD workspace (local scratch)
+
+.superpowers/
