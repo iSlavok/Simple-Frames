@@ -42,20 +42,37 @@ fixWithLeather=true
 
 ## Requirements
 
-- Minecraft **1.21.4**
-- [Fabric Loader](https://fabricmc.net/) `>=0.14.8`
+- Minecraft **1.18 – 26.2** (every version in between is supported)
+- [Fabric Loader](https://fabricmc.net/)
 - [Fabric API](https://modrinth.com/mod/fabric-api)
-- [Fabric Language Kotlin](https://modrinth.com/mod/fabric-language-kotlin) `>=1.12.0`
+- [Fabric Language Kotlin](https://modrinth.com/mod/fabric-language-kotlin)
+
+## Supported versions
+
+Built from a single source with [Stonecutter](https://stonecutter.kikugie.dev/): one jar per build anchor, each covering a patch band. Every Minecraft version from 1.18 to 26.2 is published with no gaps.
+
+| Build anchor | Covers | Java |
+| --- | --- | --- |
+| 1.18.2 | 1.18 – 1.18.2 | 17 |
+| 1.19.4 | 1.19 – 1.19.4 | 17 |
+| 1.20.4 | 1.20 – 1.20.4 | 17 |
+| 1.20.6 | 1.20.5 – 1.20.6 | 21 |
+| 1.21.1 | 1.21 – 1.21.1 | 21 |
+| 1.21.8 | 1.21.2 – 1.21.8 | 21 |
+| 1.21.10 | 1.21.9 – 1.21.11 | 21 |
+| 26.1.2 | 26.1 – 26.1.2 | 25 |
+| 26.2 | 26.2 | 25 |
 
 ## Building
 
-The mod builds against **JDK 21** (the correct toolchain for Minecraft 1.21.4). The Gradle daemon is pinned to JDK 21 via `gradle/gradle-daemon-jvm.properties`, so a plain build works even if your system default JDK is newer:
+Requires a JDK matching the newest target you build (**JDK 25** to build the 26.x anchors; JDK 17/21 build only the yarn anchors — the 26.x nodes are auto-skipped below JDK 25).
 
 ```bash
-./gradlew build
+./gradlew build            # builds every version
+./gradlew ":1.21.8:build"  # builds a single anchor
 ```
 
-The built jar lands in `build/libs/`.
+Each anchor's jar lands in `versions/<anchor>/build/libs/`.
 
 ## License
 

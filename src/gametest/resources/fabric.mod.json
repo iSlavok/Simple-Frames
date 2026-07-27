@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "simple-frames-test",
+  "version": "1.0.0",
+  "name": "Simple Frames Test",
+  "environment": "*",
+  "entrypoints": {
+    "fabric-gametest": [
+      "online.slavok.frames.gametest.FramesGameTest"
+    ]
+  },
+  "depends": {
+    "simpleframes": "*",
+    "fabric-gametest-api-v1": "*"
+  }
+}
