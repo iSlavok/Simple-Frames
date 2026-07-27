@@ -19,14 +19,14 @@ A lightweight server-side Fabric mod that lets you make item frames **invisible*
 
 ## Commands
 
-Requires permission level 3 (operator).
-
 | Command | Description |
 | --- | --- |
 | `/simpleframes doShearsBreak <true\|false>` | Whether shears take durability damage / break when used. |
 | `/simpleframes doLeatherFix <true\|false>` | Whether invisible frames can be restored with leather. |
 
 Running a subcommand without a value prints the current setting.
+
+**Permissions.** The command is guarded by the node `simpleframes.command`. If [fabric-permissions-api](https://modrinth.com/mod/fabric-permissions-api) (e.g. via LuckPerms) is installed, grant that node; otherwise it falls back to vanilla operator **level 3**.
 
 ## Configuration
 

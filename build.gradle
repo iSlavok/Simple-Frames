@@ -27,6 +27,9 @@ dependencies {
 
 	// Kotlin language support for Fabric.
 	modImplementation "net.fabricmc:fabric-language-kotlin:${project.fabric_language_kotlin_version}"
+
+	// Permission API (LuckPerms-compatible); falls back to vanilla op levels when absent.
+	modImplementation "me.lucko:fabric-permissions-api:${project.permissions_api_version}"
 }
 
 processResources {

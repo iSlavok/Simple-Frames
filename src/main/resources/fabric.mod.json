@@ -36,5 +36,8 @@
     "fabric-language-kotlin": ">=1.12.0",
     "minecraft": ">=1.21.4",
     "java": ">=21"
+  },
+  "suggests": {
+    "fabric-permissions-api-v0": "*"
   }
 }
