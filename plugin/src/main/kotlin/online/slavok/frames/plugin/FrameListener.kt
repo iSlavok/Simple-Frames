@@ -1,6 +1,7 @@
 package online.slavok.frames.plugin
 
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
 import org.bukkit.GameMode
 import org.bukkit.Material
@@ -150,7 +151,9 @@ class FrameListener(private val plugin: SimpleFramesPlugin) : Listener {
     // Non-italic on every version: an Adventure component with the ITALIC decoration
     // explicitly disabled (custom names render italic only when italic is left unset).
     private fun setFrameName(meta: ItemMeta, name: String) {
-        meta.displayName(Component.text(name).decoration(TextDecoration.ITALIC, false))
+        // Explicit white: the hidden glint enchant bumps rarity to RARE, which would
+        // otherwise colour the name aqua.
+        meta.displayName(Component.text(name).decoration(TextDecoration.ITALIC, false).color(NamedTextColor.WHITE))
     }
 
     private fun damageShears(item: ItemStack) {

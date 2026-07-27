@@ -251,7 +251,7 @@ public class ItemFrameMixin {
 				nbt.putBoolean("invisibleframe", true);
 				item.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(nbt));
 				//?} else {
-				/*item.setCustomName(online.slavok.frames.CompatTextKt.literalText(SimpleFramesMod.CONFIG.invisibleFrameName).setStyle(net.minecraft.text.Style.EMPTY.withItalic(false)));
+				/*item.setCustomName(online.slavok.frames.CompatTextKt.literalText(SimpleFramesMod.CONFIG.invisibleFrameName).setStyle(net.minecraft.text.Style.EMPTY.withItalic(false).withFormatting(net.minecraft.util.Formatting.WHITE)));
 				NbtCompound nbt = item.getOrCreateNbt();
 				nbt.putBoolean("invisibleframe", true);
 				// Glint without a visible enchant (pre-1.20.5 has no glint component).

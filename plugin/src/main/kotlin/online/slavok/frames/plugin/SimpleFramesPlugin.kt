@@ -14,9 +14,9 @@ open class SimpleFramesPlugin : JavaPlugin() {
         private set
     var fixWithLeather = true
         private set
-    var invisibleFrameName = "Invisible Frame"
+    var invisibleFrameName = "Invisible Item Frame"
         private set
-    var invisibleGlowFrameName = "Invisible Glow Frame"
+    var invisibleGlowFrameName = "Invisible Glow Item Frame"
         private set
 
     override fun onEnable() {

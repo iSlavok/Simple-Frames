@@ -6,7 +6,7 @@ doShearsBreak: true
 fixWithLeather: true
 
 # Item name shown on an invisible frame.
-invisibleFrameName: "Invisible Frame"
+invisibleFrameName: "Invisible Item Frame"
 
 # Item name shown on an invisible glow frame.
-invisibleGlowFrameName: "Invisible Glow Frame"
+invisibleGlowFrameName: "Invisible Glow Item Frame"
