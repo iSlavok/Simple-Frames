@@ -65,6 +65,13 @@ public class FramesGameTest {
         }
         SimpleFramesMod.CONFIG.doShearsBreak = original;
 
+        // Regression: evaluating the command permission predicate must not throw.
+        // fabric-permissions-api's int check referenced a stale hasPermissionLevel
+        // intermediary that crashed on player join (NoSuchMethodError).
+        online.slavok.frames.commands.api.Permission.INSTANCE
+                .require("simpleframes.command", 3)
+                .test(world.getServer().getCommandSource());
+
         //? if >=1.22 {
         /*context.succeed();*/
         //?} else {
