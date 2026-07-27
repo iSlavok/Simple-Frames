@@ -115,7 +115,12 @@ dependencies {
 
     modImplementation("net.fabricmc.fabric-api:fabric-api:${mc.fapi}")
     modImplementation("net.fabricmc:fabric-language-kotlin:${mc.flk}")
-    modImplementation("me.lucko:fabric-permissions-api:${mc.permissions}")
+    modImplementation("me.lucko:fabric-permissions-api:${mc.permissions}") {
+        // permissions-api pulls the fabric-api BOM (0.97.0+1.20.4), which bumps
+        // fabric-api to a 1.20.4 build and breaks runClient on the older anchors.
+        // Our own per-anchor fabric-api already provides the command API it needs.
+        exclude(group = "net.fabricmc.fabric-api")
+    }
 
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
