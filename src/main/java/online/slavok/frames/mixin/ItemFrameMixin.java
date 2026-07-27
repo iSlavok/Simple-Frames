@@ -166,7 +166,8 @@ public class ItemFrameMixin {
 			//? if >=1.21.2 {
 			ServerWorld serverWorld = world;
 			//?} else {
-			/*ServerWorld serverWorld = (ServerWorld) frame.getWorld();*/
+			/*if (!(frame.getWorld() instanceof ServerWorld)) return;
+			ServerWorld serverWorld = (ServerWorld) frame.getWorld();*/
 			//?}
 			boolean isInvisibleFrame = FrameTags.has(frame);
 
