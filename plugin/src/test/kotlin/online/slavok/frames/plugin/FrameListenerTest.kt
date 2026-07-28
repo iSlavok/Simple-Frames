@@ -6,9 +6,12 @@ import org.bukkit.Material
 import org.bukkit.NamespacedKey
 import org.bukkit.World
 import org.bukkit.entity.ItemFrame
+import org.bukkit.entity.LivingEntity
 import org.bukkit.entity.Player
+import org.bukkit.entity.Projectile
 import org.bukkit.event.entity.EntityDamageByEntityEvent
 import org.bukkit.event.hanging.HangingBreakByEntityEvent
+import org.bukkit.event.hanging.HangingBreakEvent
 import org.bukkit.event.player.PlayerInteractEntityEvent
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.PlayerInventory
@@ -331,5 +334,67 @@ class FrameListenerTest {
 
         verify(pdc, never()).remove(waxKey)
         verify(pdc).set(key, PersistentDataType.BYTE, 1.toByte())
+    }
+
+    private fun projectileDamageEvent(frame: ItemFrame, shooter: Any?): EntityDamageByEntityEvent {
+        val arrow = mock<Projectile>()
+        whenever(arrow.shooter).thenReturn(shooter as? org.bukkit.projectiles.ProjectileSource)
+        val event = mock<EntityDamageByEntityEvent>()
+        whenever(event.entity).thenReturn(frame)
+        whenever(event.damager).thenReturn(arrow)
+        return event
+    }
+
+    // A player's arrow that knocks the item out of a waxed frame also removes the wax.
+    @Test
+    fun `a player's projectile knocking the item out removes the wax`() {
+        val plugin = mockPlugin()
+        val (frame, pdc) = mockFrame(invisible = false, itemType = Material.DIAMOND, waxed = true)
+        val event = projectileDamageEvent(frame, mockPlayer(Material.AIR))
+
+        FrameListener(plugin).onDamage(event)
+
+        verify(pdc).remove(waxKey)
+    }
+
+    // A mob's arrow does not (matches Fabric: only a player attacker unwaxes).
+    @Test
+    fun `a mob projectile does not remove the wax`() {
+        val plugin = mockPlugin()
+        val (frame, pdc) = mockFrame(invisible = false, itemType = Material.DIAMOND, waxed = true)
+        val event = projectileDamageEvent(frame, mock<LivingEntity>())
+
+        FrameListener(plugin).onDamage(event)
+
+        verify(pdc, never()).remove(waxKey)
+    }
+
+    // var3 no longer protects against support-block removal (PHYSICS) -> frame falls,
+    // matching Fabric (which only blocks damage, not the attach/survival path).
+    @Test
+    fun `full lock does not cancel a PHYSICS break`() {
+        val plugin = mockPlugin()
+        whenever(plugin.waxFullLock).thenReturn(true)
+        val event = mock<HangingBreakEvent>()
+        whenever(event.cause).thenReturn(HangingBreakEvent.RemoveCause.PHYSICS)
+
+        FrameListener(plugin).onBreakFullLock(event)
+
+        verify(event, never()).isCancelled = true
+    }
+
+    // var3 still cancels a non-physics break (e.g. explosion) of a waxed frame.
+    @Test
+    fun `full lock cancels a non-physics break of a waxed frame`() {
+        val plugin = mockPlugin()
+        whenever(plugin.waxFullLock).thenReturn(true)
+        val (frame, _) = mockFrame(invisible = false, itemType = Material.DIAMOND, waxed = true)
+        val event = mock<HangingBreakEvent>()
+        whenever(event.cause).thenReturn(HangingBreakEvent.RemoveCause.EXPLOSION)
+        whenever(event.entity).thenReturn(frame)
+
+        FrameListener(plugin).onBreakFullLock(event)
+
+        verify(event).isCancelled = true
     }
 }
