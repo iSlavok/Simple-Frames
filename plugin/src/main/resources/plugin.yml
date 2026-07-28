@@ -8,7 +8,7 @@ description: Make item frames invisible with shears, and restore them with leath
 commands:
   simpleframes:
     description: Configure Simple Frames.
-    usage: /simpleframes <doShearsBreak|doLeatherFix|enableWax|waxFullLock|doAxeBreak> [true|false]
+    usage: /simpleframes <doShearsBreak|doLeatherFix|enableWax|waxFullLock|doAxeBreak|doLeatherConsume|doHoneycombConsume|shearsButton|leatherButton|honeycombButton|axeButton> [true|false|LEFT|RIGHT|BOTH]
     permission: simpleframes.command
 permissions:
   simpleframes.command:
