@@ -11,7 +11,8 @@ A lightweight server-side Fabric mod that lets you make item frames **invisible*
 - 🍯 **Wax a frame with honeycomb** to lock the item's rotation — it can no longer be rotated or swapped, just like waxing a sign. Only frames that already hold an item can be waxed.
 - 🪓 **Un-wax with any axe.** Right-click a waxed frame with an axe to remove the wax (the axe takes durability, vanilla-style).
 - 🔒 **Optional full lock.** By default waxing only blocks right-click interactions; enable `waxFullLock` to also make a waxed frame invulnerable.
-- ⚙️ **Configurable.** Toggle shear damage, leather restoration, and every part of the wax feature — via config file or in-game command.
+- 🖱️ **Pick the button.** Each interaction (shears, leather, honeycomb, axe) can fire on left-click, right-click, or both — configurable per interaction.
+- ⚙️ **Configurable.** Toggle damage/consumption for every tool and every part of the wax feature, plus per-action permission nodes (plugin) — via config file or in-game command.
 - 🖥️ **Server-side.** No client mod required for other players to see the effect.
 
 ## Usage
@@ -27,6 +28,10 @@ A lightweight server-side Fabric mod that lets you make item frames **invisible*
 
 Wax is not kept when the frame is broken. Consumption is vanilla-style (one honeycomb to wax, axe durability to un-wax; free in creative).
 
+**Interaction buttons** (configurable):
+
+By default shears and leather act on **left-click**; honeycomb and axe act on **both** buttons. Change any of them to `LEFT`, `RIGHT`, or `BOTH`. When shears or leather also accept right-click, sneaking flips the meaning: **plain right-click = the mod action, sneak + right-click = vanilla** (place the item into an empty frame, or rotate a full one). The axe on left-click only matters while `waxFullLock` is on — otherwise a left-click just knocks the item out (which frees the wax anyway).
+
 ## Commands
 
 | Command | Description |
@@ -36,10 +41,18 @@ Wax is not kept when the frame is broken. Consumption is vanilla-style (one hone
 | `/simpleframes enableWax <true\|false>` | Master toggle for the whole wax feature. |
 | `/simpleframes waxFullLock <true\|false>` | `false` blocks right-click only; `true` also makes a waxed frame invulnerable. |
 | `/simpleframes doAxeBreak <true\|false>` | Whether axes take durability damage when removing wax. |
+| `/simpleframes doLeatherConsume <true\|false>` | Whether leather is consumed when restoring a frame. |
+| `/simpleframes doHoneycombConsume <true\|false>` | Whether honeycomb is consumed when waxing. |
+| `/simpleframes shearsButton <LEFT\|RIGHT\|BOTH>` | Which button makes a frame invisible with shears. |
+| `/simpleframes leatherButton <LEFT\|RIGHT\|BOTH>` | Which button restores a frame with leather. |
+| `/simpleframes honeycombButton <LEFT\|RIGHT\|BOTH>` | Which button waxes a frame with honeycomb. |
+| `/simpleframes axeButton <LEFT\|RIGHT\|BOTH>` | Which button removes wax with an axe. |
 
 Running a subcommand without a value prints the current setting.
 
 **Permissions.** The command is guarded by the node `simpleframes.command`. If [fabric-permissions-api](https://modrinth.com/mod/fabric-permissions-api) (e.g. via LuckPerms) is installed, grant that node; otherwise it falls back to vanilla operator **level 3**.
+
+**(Plugin only)** Each interaction is additionally gated by a permission node — `simpleframes.use.shear`, `simpleframes.use.restore`, `simpleframes.use.wax`, `simpleframes.use.unwax` — all `default: true`, so everything works out of the box. Revoke a node to stop those players from using that interaction.
 
 ## Configuration
 
@@ -60,6 +73,18 @@ waxFullLock=false
 
 # Do axes get damaged when removing wax
 doAxeBreak=true
+
+# Which mouse button triggers each interaction: LEFT, RIGHT, or BOTH.
+# Shears/leather on RIGHT (or BOTH): sneak + right-click = vanilla place/rotate,
+# plain right-click = the mod action.
+shearsButton=LEFT
+leatherButton=LEFT
+honeycombButton=BOTH
+axeButton=BOTH
+
+# Do leather / honeycomb get consumed when used
+doLeatherConsume=true
+doHoneycombConsume=true
 ```
 
 ## Requirements
@@ -105,7 +130,7 @@ The same behaviour is also available as a **server plugin** (no client mod neede
 ./gradlew -p plugin runServer   # boot a Paper server with the plugin (-Prun_mc=1.21.8)
 ```
 
-Same features (shear → invisible, leather → restore, honeycomb → wax, axe → un-wax, persistence through breaking, the full `doShearsBreak`/`fixWithLeather`/`enableWax`/`waxFullLock`/`doAxeBreak` config, `/simpleframes` command gated by `simpleframes.command`). The plugin jar lands in `plugin/build/libs/`.
+Same features (shear → invisible, leather → restore, honeycomb → wax, axe → un-wax, persistence through breaking, per-interaction button modes, the full `doShearsBreak`/`fixWithLeather`/`enableWax`/`waxFullLock`/`doAxeBreak`/`doLeatherConsume`/`doHoneycombConsume`/`shearsButton`/`leatherButton`/`honeycombButton`/`axeButton` config, `/simpleframes` command gated by `simpleframes.command`, plus per-action `simpleframes.use.*` permission nodes). The plugin jar lands in `plugin/build/libs/`.
 
 ## License
 
