@@ -66,7 +66,7 @@ public class DecorationItemMixin {
                 } else {
                     frameEntity = new GlowItemFrame(world, blockPos2, direction);
                 }
-                FrameTags.add(frameEntity);
+                FrameTags.add(frameEntity, FrameTags.INVISIBLE);
 
                 if (frameEntity.survives()) {
                     if (world instanceof ServerLevel serverLevel) {
@@ -156,7 +156,7 @@ public class DecorationItemMixin {
                 } else {
                     frameEntity = new GlowItemFrameEntity(world, blockPos2, direction);
                 }
-                FrameTags.add(frameEntity);
+                FrameTags.add(frameEntity, FrameTags.INVISIBLE);
 
                 if (frameEntity.canStayAttached()) {
                     if (world instanceof ServerWorld) {

@@ -52,6 +52,27 @@ class FrameCommand {
                         { value -> SimpleFramesMod.CONFIG.fixWithLeather = value }
                     )
                 )
+                .then(
+                    toggle(
+                        "enableWax",
+                        { SimpleFramesMod.CONFIG.enableWax },
+                        { value -> SimpleFramesMod.CONFIG.enableWax = value }
+                    )
+                )
+                .then(
+                    toggle(
+                        "waxFullLock",
+                        { SimpleFramesMod.CONFIG.waxFullLock },
+                        { value -> SimpleFramesMod.CONFIG.waxFullLock = value }
+                    )
+                )
+                .then(
+                    toggle(
+                        "doAxeBreak",
+                        { SimpleFramesMod.CONFIG.doAxeBreak },
+                        { value -> SimpleFramesMod.CONFIG.doAxeBreak = value }
+                    )
+                )
         )
     }
 

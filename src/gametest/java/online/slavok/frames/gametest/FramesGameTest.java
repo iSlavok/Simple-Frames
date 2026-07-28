@@ -57,6 +57,19 @@ public class FramesGameTest {
         GlowItemFrameEntity glow = new GlowItemFrameEntity(world, pos, Direction.NORTH);
         if (frame == null || glow == null) throw new RuntimeException("frame construction failed");
 
+        // FrameTags round-trips independently for each tag on a real entity.
+        online.slavok.frames.FrameTags.add(frame, online.slavok.frames.FrameTags.WAXED);
+        if (!online.slavok.frames.FrameTags.has(frame, online.slavok.frames.FrameTags.WAXED)) {
+            throw new RuntimeException("WAXED tag not added");
+        }
+        if (online.slavok.frames.FrameTags.has(frame, online.slavok.frames.FrameTags.INVISIBLE)) {
+            throw new RuntimeException("WAXED must not imply INVISIBLE");
+        }
+        online.slavok.frames.FrameTags.remove(frame, online.slavok.frames.FrameTags.WAXED);
+        if (online.slavok.frames.FrameTags.has(frame, online.slavok.frames.FrameTags.WAXED)) {
+            throw new RuntimeException("WAXED tag not removed");
+        }
+
         // Mod is initialised: config is live and toggles round-trip.
         boolean original = SimpleFramesMod.CONFIG.doShearsBreak;
         SimpleFramesMod.CONFIG.doShearsBreak = !original;
@@ -64,6 +77,13 @@ public class FramesGameTest {
             throw new RuntimeException("config toggle did not take effect");
         }
         SimpleFramesMod.CONFIG.doShearsBreak = original;
+
+        boolean origWax = SimpleFramesMod.CONFIG.enableWax;
+        SimpleFramesMod.CONFIG.enableWax = !origWax;
+        if (SimpleFramesMod.CONFIG.enableWax == origWax) {
+            throw new RuntimeException("enableWax toggle did not take effect");
+        }
+        SimpleFramesMod.CONFIG.enableWax = origWax;
 
         // Regression: evaluating the command permission predicate must not throw.
         // fabric-permissions-api's int check referenced a stale hasPermissionLevel

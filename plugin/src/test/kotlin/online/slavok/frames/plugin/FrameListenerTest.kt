@@ -4,12 +4,18 @@ import org.bukkit.GameMode
 import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
+import org.bukkit.Sound
+import org.bukkit.SoundCategory
 import org.bukkit.World
 import org.bukkit.entity.ItemFrame
+import org.bukkit.entity.LivingEntity
 import org.bukkit.entity.Player
+import org.bukkit.entity.Projectile
 import org.bukkit.event.entity.EntityDamageByEntityEvent
 import org.bukkit.event.hanging.HangingBreakByEntityEvent
+import org.bukkit.event.hanging.HangingBreakEvent
 import org.bukkit.event.player.PlayerInteractEntityEvent
+import org.bukkit.inventory.EquipmentSlot
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.PlayerInventory
 import org.bukkit.persistence.PersistentDataContainer
@@ -29,12 +35,17 @@ import org.mockito.kotlin.whenever
  */
 class FrameListenerTest {
     private val key = NamespacedKey("simpleframes", "invisibleframe")
+    private val waxKey = NamespacedKey("simpleframes", "waxedframe")
 
     private fun mockPlugin(): SimpleFramesPlugin {
         val p = mock<SimpleFramesPlugin>()
         whenever(p.invisibleKey).thenReturn(key)
+        whenever(p.waxedKey).thenReturn(waxKey)
         whenever(p.doShearsBreak).thenReturn(true)
         whenever(p.fixWithLeather).thenReturn(true)
+        whenever(p.enableWax).thenReturn(true)
+        whenever(p.waxFullLock).thenReturn(false)
+        whenever(p.doAxeBreak).thenReturn(true)
         return p
     }
 
@@ -49,9 +60,14 @@ class FrameListenerTest {
         return player
     }
 
-    private fun mockFrame(invisible: Boolean, itemType: Material): Pair<ItemFrame, PersistentDataContainer> {
+    private fun mockFrame(
+        invisible: Boolean,
+        itemType: Material,
+        waxed: Boolean = false,
+    ): Pair<ItemFrame, PersistentDataContainer> {
         val pdc = mock<PersistentDataContainer>()
         whenever(pdc.has(key, PersistentDataType.BYTE)).thenReturn(invisible)
+        whenever(pdc.has(waxKey, PersistentDataType.BYTE)).thenReturn(waxed)
         val held = mock<ItemStack>()
         whenever(held.type).thenReturn(itemType)
         val frame = mock<ItemFrame>()
@@ -60,6 +76,18 @@ class FrameListenerTest {
         whenever(frame.world).thenReturn(mock<World>())
         whenever(frame.location).thenReturn(mock<Location>())
         return frame to pdc
+    }
+
+    private fun interactEvent(
+        frame: ItemFrame,
+        player: Player,
+        hand: EquipmentSlot = EquipmentSlot.HAND,
+    ): PlayerInteractEntityEvent {
+        val event = mock<PlayerInteractEntityEvent>()
+        whenever(event.rightClicked).thenReturn(frame)
+        whenever(event.player).thenReturn(player)
+        whenever(event.hand).thenReturn(hand)
+        return event
     }
 
     private fun damageEvent(frame: ItemFrame, player: Player): EntityDamageByEntityEvent {
@@ -205,5 +233,190 @@ class FrameListenerTest {
         FrameListener(plugin).onDamage(event)
 
         verify(frame, never()).setVisible(any())
+    }
+
+    // --- Wax feature ---
+
+    @Test
+    fun `honeycomb waxes a frame holding an item`() {
+        val plugin = mockPlugin()
+        val (frame, pdc) = mockFrame(invisible = false, itemType = Material.DIAMOND)
+        val event = interactEvent(frame, mockPlayer(Material.HONEYCOMB))
+
+        FrameListener(plugin).onInteract(event)
+
+        verify(pdc).set(waxKey, PersistentDataType.BYTE, 1.toByte())
+        verify(event).isCancelled = true
+    }
+
+    @Test
+    fun `honeycomb does not wax an empty frame`() {
+        val plugin = mockPlugin()
+        val (frame, pdc) = mockFrame(invisible = false, itemType = Material.AIR)
+        val event = interactEvent(frame, mockPlayer(Material.HONEYCOMB))
+
+        FrameListener(plugin).onInteract(event)
+
+        verify(pdc, never()).set(waxKey, PersistentDataType.BYTE, 1.toByte())
+    }
+
+    @Test
+    fun `axe removes wax from a waxed frame`() {
+        val plugin = mockPlugin()
+        val (frame, pdc) = mockFrame(invisible = false, itemType = Material.DIAMOND, waxed = true)
+        val event = interactEvent(frame, mockPlayer(Material.DIAMOND_AXE))
+
+        FrameListener(plugin).onInteract(event)
+
+        verify(pdc).remove(waxKey)
+        verify(event).isCancelled = true
+    }
+
+    @Test
+    fun `waxed frame blocks a plain right-click (rotation)`() {
+        val plugin = mockPlugin()
+        val (frame, _) = mockFrame(invisible = false, itemType = Material.DIAMOND, waxed = true)
+        val event = interactEvent(frame, mockPlayer(Material.AIR))
+
+        FrameListener(plugin).onInteract(event)
+
+        verify(event).isCancelled = true
+    }
+
+    // The off-hand copy of the right-click still blocks, but must NOT replay the denied
+    // click (the event fires once per hand; only the main hand plays the sound).
+    @Test
+    fun `off-hand right-click on a waxed frame blocks without a second denied sound`() {
+        val plugin = mockPlugin()
+        val (frame, _) = mockFrame(invisible = false, itemType = Material.DIAMOND, waxed = true)
+        val event = interactEvent(frame, mockPlayer(Material.AIR), hand = EquipmentSlot.OFF_HAND)
+
+        FrameListener(plugin).onInteract(event)
+
+        verify(event).isCancelled = true // still blocked
+        verify(frame.world, never()).playSound(any<Location>(), any<Sound>(), any<SoundCategory>(), any<Float>(), any<Float>())
+    }
+
+    @Test
+    fun `wax handling is skipped when the feature is disabled`() {
+        val plugin = mockPlugin()
+        whenever(plugin.enableWax).thenReturn(false)
+        val (frame, pdc) = mockFrame(invisible = false, itemType = Material.DIAMOND)
+        val event = interactEvent(frame, mockPlayer(Material.HONEYCOMB))
+
+        FrameListener(plugin).onInteract(event)
+
+        verify(pdc, never()).set(waxKey, PersistentDataType.BYTE, 1.toByte())
+    }
+
+    @Test
+    fun `full lock cancels damage to a waxed frame`() {
+        val plugin = mockPlugin()
+        whenever(plugin.waxFullLock).thenReturn(true)
+        val (frame, _) = mockFrame(invisible = false, itemType = Material.DIAMOND, waxed = true)
+        val event = damageEvent(frame, mockPlayer(Material.AIR))
+
+        FrameListener(plugin).onDamageFullLock(event)
+
+        verify(event).isCancelled = true
+    }
+
+    @Test
+    fun `full lock does nothing at var2`() {
+        val plugin = mockPlugin()
+        val (frame, _) = mockFrame(invisible = false, itemType = Material.DIAMOND, waxed = true)
+        val event = damageEvent(frame, mockPlayer(Material.AIR))
+
+        FrameListener(plugin).onDamageFullLock(event)
+
+        verify(event, never()).isCancelled = true
+    }
+
+    // var2: knocking the item out of a waxed frame auto-removes the wax so the frame
+    // can be reused (an empty waxed frame would otherwise reject a new item).
+    @Test
+    fun `knocking the item out of a waxed frame removes the wax`() {
+        val plugin = mockPlugin()
+        val (frame, pdc) = mockFrame(invisible = false, itemType = Material.DIAMOND, waxed = true)
+        val event = damageEvent(frame, mockPlayer(Material.AIR))
+
+        FrameListener(plugin).onDamage(event)
+
+        verify(pdc).remove(waxKey)
+    }
+
+    // Shearing a waxed frame makes it invisible but keeps its item -> wax stays.
+    @Test
+    fun `shears on a waxed frame keep the wax`() {
+        val plugin = mockPlugin()
+        val (frame, pdc) = mockFrame(invisible = false, itemType = Material.DIAMOND, waxed = true)
+        val event = damageEvent(frame, mockPlayer(Material.SHEARS))
+
+        FrameListener(plugin).onDamage(event)
+
+        verify(pdc, never()).remove(waxKey)
+        verify(pdc).set(key, PersistentDataType.BYTE, 1.toByte())
+    }
+
+    private fun projectileDamageEvent(frame: ItemFrame, shooter: Any?): EntityDamageByEntityEvent {
+        val arrow = mock<Projectile>()
+        whenever(arrow.shooter).thenReturn(shooter as? org.bukkit.projectiles.ProjectileSource)
+        val event = mock<EntityDamageByEntityEvent>()
+        whenever(event.entity).thenReturn(frame)
+        whenever(event.damager).thenReturn(arrow)
+        return event
+    }
+
+    // A player's arrow that knocks the item out of a waxed frame also removes the wax.
+    @Test
+    fun `a player's projectile knocking the item out removes the wax`() {
+        val plugin = mockPlugin()
+        val (frame, pdc) = mockFrame(invisible = false, itemType = Material.DIAMOND, waxed = true)
+        val event = projectileDamageEvent(frame, mockPlayer(Material.AIR))
+
+        FrameListener(plugin).onDamage(event)
+
+        verify(pdc).remove(waxKey)
+    }
+
+    // A mob's arrow does not (matches Fabric: only a player attacker unwaxes).
+    @Test
+    fun `a mob projectile does not remove the wax`() {
+        val plugin = mockPlugin()
+        val (frame, pdc) = mockFrame(invisible = false, itemType = Material.DIAMOND, waxed = true)
+        val event = projectileDamageEvent(frame, mock<LivingEntity>())
+
+        FrameListener(plugin).onDamage(event)
+
+        verify(pdc, never()).remove(waxKey)
+    }
+
+    // var3 no longer protects against support-block removal (PHYSICS) -> frame falls,
+    // matching Fabric (which only blocks damage, not the attach/survival path).
+    @Test
+    fun `full lock does not cancel a PHYSICS break`() {
+        val plugin = mockPlugin()
+        whenever(plugin.waxFullLock).thenReturn(true)
+        val event = mock<HangingBreakEvent>()
+        whenever(event.cause).thenReturn(HangingBreakEvent.RemoveCause.PHYSICS)
+
+        FrameListener(plugin).onBreakFullLock(event)
+
+        verify(event, never()).isCancelled = true
+    }
+
+    // var3 still cancels a non-physics break (e.g. explosion) of a waxed frame.
+    @Test
+    fun `full lock cancels a non-physics break of a waxed frame`() {
+        val plugin = mockPlugin()
+        whenever(plugin.waxFullLock).thenReturn(true)
+        val (frame, _) = mockFrame(invisible = false, itemType = Material.DIAMOND, waxed = true)
+        val event = mock<HangingBreakEvent>()
+        whenever(event.cause).thenReturn(HangingBreakEvent.RemoveCause.EXPLOSION)
+        whenever(event.entity).thenReturn(frame)
+
+        FrameListener(plugin).onBreakFullLock(event)
+
+        verify(event).isCancelled = true
     }
 }

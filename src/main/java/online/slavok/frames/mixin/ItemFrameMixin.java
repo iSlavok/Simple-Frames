@@ -16,6 +16,7 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.decoration.ItemFrame;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.AxeItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.CustomData;
@@ -31,10 +32,20 @@ public class ItemFrameMixin {
 	@Inject(at = @At("HEAD"), method = "hurtServer", cancellable = true)
 	private void injectDamage(ServerLevel world, DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
 		try {
+			ItemFrame self = ((ItemFrame) (Object) this);
+			if (SimpleFramesMod.CONFIG.enableWax && SimpleFramesMod.CONFIG.waxFullLock && FrameTags.has(self, FrameTags.WAXED)) {
+				if (source.getEntity() instanceof Player && self.level() instanceof ServerLevel sl) {
+					sl.playSound(null, self.blockPosition(), SoundEvents.SHIELD_BLOCK.value(), SoundSource.NEUTRAL, 0.8f, 1.5f);
+				}
+				cir.setReturnValue(false);
+				cir.cancel();
+				return;
+			}
+
 			if (!(source.getEntity() instanceof Player player)) return;
 			ItemStack itemStackInHand = player.getMainHandItem();
 			ItemFrame frame = ((ItemFrame) (Object) this);
-			boolean isInvisibleFrame = FrameTags.has(frame);
+			boolean isInvisibleFrame = FrameTags.has(frame, FrameTags.INVISIBLE);
 
 			if (itemStackInHand.getItem() == Items.SHEARS && !isInvisibleFrame) {
 				if (!player.isCreative() && SimpleFramesMod.CONFIG.doShearsBreak) {
@@ -46,7 +57,7 @@ public class ItemFrameMixin {
 				}
 				world.playSound(null, frame.blockPosition(), SoundEvents.SNOW_GOLEM_SHEAR, SoundSource.NEUTRAL, 1f, 1.5f);
 				world.sendParticles(ParticleTypes.CLOUD, frame.getX(), frame.getY(), frame.getZ(), 3, 0.0, 0.0, 0.0, 0.1);
-				FrameTags.add(frame);
+				FrameTags.add(frame, FrameTags.INVISIBLE);
 				if (!frame.getItem().isEmpty()) {
 					frame.setInvisible(true);
 				}
@@ -60,9 +71,16 @@ public class ItemFrameMixin {
 				world.playSound(null, frame.blockPosition(), SoundEvents.ITEM_FRAME_PLACE, SoundSource.NEUTRAL, 1f, 1.5f);
 				world.sendParticles(ParticleTypes.CRIT, frame.getX(), frame.getY(), frame.getZ(), 10, 0.3, 0.3, 0.3, 0.1);
 				frame.setInvisible(false);
-				FrameTags.remove(frame);
+				FrameTags.remove(frame, FrameTags.INVISIBLE);
 				cir.setReturnValue(true);
 				cir.cancel();
+				return;
+			}
+
+			if (SimpleFramesMod.CONFIG.enableWax && FrameTags.has(frame, FrameTags.WAXED) && !frame.getItem().isEmpty()) {
+				FrameTags.remove(frame, FrameTags.WAXED);
+				world.playSound(null, frame.blockPosition(), SoundEvents.AXE_WAX_OFF, SoundSource.BLOCKS, 1f, 1.5f);
+				world.sendParticles(ParticleTypes.WAX_OFF, frame.getX(), frame.getY(), frame.getZ(), 7, 0.2, 0.2, 0.2, 0.1);
 			}
 		} catch (Exception e) {
 			SimpleFramesMod.LOGGER.error("SimpleFrames error on ItemFrameMixin.hurtServer(): " + e);
@@ -75,6 +93,53 @@ public class ItemFrameMixin {
 	@Inject(at = @At("RETURN"), method = "hurtServer")
 	private void syncAfterDamage(ServerLevel world, DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
 		updateState();
+	}
+
+	@Inject(at = @At("HEAD"), method = "interact", cancellable = true)
+	private void injectWax(Player player, InteractionHand hand, Vec3 hitPos, CallbackInfoReturnable<InteractionResult> cir) {
+		try {
+			if (!SimpleFramesMod.CONFIG.enableWax) return;
+			ItemFrame frame = ((ItemFrame) (Object) this);
+			if (!(frame.level() instanceof ServerLevel serverLevel)) return;
+			ItemStack held = player.getItemInHand(hand);
+			boolean waxed = FrameTags.has(frame, FrameTags.WAXED);
+
+			if (waxed && held.getItem() instanceof AxeItem) {
+				if (!player.isCreative() && SimpleFramesMod.CONFIG.doAxeBreak) {
+					if (held.getDamageValue() < held.getMaxDamage() - 1) {
+						held.setDamageValue(held.getDamageValue() + 1);
+					} else {
+						held.shrink(1);
+					}
+				}
+				FrameTags.remove(frame, FrameTags.WAXED);
+				serverLevel.playSound(null, frame.blockPosition(), SoundEvents.AXE_WAX_OFF, SoundSource.BLOCKS, 1f, 1.5f);
+				serverLevel.sendParticles(ParticleTypes.WAX_OFF, frame.getX(), frame.getY(), frame.getZ(), 7, 0.2, 0.2, 0.2, 0.1);
+				cir.setReturnValue(InteractionResult.SUCCESS);
+				cir.cancel();
+				return;
+			}
+
+			if (!waxed && held.getItem() == Items.HONEYCOMB && !frame.getItem().isEmpty()) {
+				if (!player.isCreative()) held.shrink(1);
+				FrameTags.add(frame, FrameTags.WAXED);
+				serverLevel.playSound(null, frame.blockPosition(), SoundEvents.HONEYCOMB_WAX_ON, SoundSource.BLOCKS, 1f, 1.5f);
+				serverLevel.sendParticles(ParticleTypes.WAX_ON, frame.getX(), frame.getY(), frame.getZ(), 7, 0.2, 0.2, 0.2, 0.1);
+				cir.setReturnValue(InteractionResult.SUCCESS);
+				cir.cancel();
+				return;
+			}
+
+			if (waxed) {
+				if (hand == InteractionHand.MAIN_HAND) {
+					serverLevel.playSound(null, frame.blockPosition(), SoundEvents.SHIELD_BLOCK.value(), SoundSource.NEUTRAL, 0.8f, 1.5f);
+				}
+				cir.setReturnValue(InteractionResult.SUCCESS);
+				cir.cancel();
+			}
+		} catch (Exception e) {
+			SimpleFramesMod.LOGGER.error("SimpleFrames error on ItemFrameMixin.interact wax: " + e);
+		}
 	}
 
 	@Inject(at = @At("RETURN"), method = "interact")
@@ -92,7 +157,7 @@ public class ItemFrameMixin {
 		try {
 			if (!SimpleFramesMod.CONFIG.fixWithLeather) return;
 			ItemFrame frame = ((ItemFrame) (Object) this);
-			if (FrameTags.has(frame)) {
+			if (FrameTags.has(frame, FrameTags.INVISIBLE)) {
 				ItemStack item = cir.getReturnValue();
 				item.set(DataComponents.ITEM_NAME, Component.literal(SimpleFramesMod.CONFIG.invisibleFrameName));
 				item.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);
@@ -110,7 +175,7 @@ public class ItemFrameMixin {
 	private void updateState() {
 		try {
 			ItemFrame frame = ((ItemFrame) (Object) this);
-			if (FrameTags.has(frame)) {
+			if (FrameTags.has(frame, FrameTags.INVISIBLE)) {
 				frame.setInvisible(!frame.getItem().isEmpty());
 			}
 		} catch (Exception e) {
@@ -129,6 +194,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.decoration.ItemFrameEntity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.AxeItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
 //? if <1.20.5 {
@@ -137,6 +203,7 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvent;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
@@ -157,6 +224,24 @@ public class ItemFrameMixin {
 	/*private void injectDamage(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {*/
 	//?}
 		try {
+			ItemFrameEntity self = ((ItemFrameEntity) (Object) this);
+			if (SimpleFramesMod.CONFIG.enableWax && SimpleFramesMod.CONFIG.waxFullLock && FrameTags.has(self, FrameTags.WAXED)) {
+				if (source.getAttacker() instanceof PlayerEntity) {
+					//? if >=1.21.10 {
+					/*if (self.getEntityWorld() instanceof ServerWorld sw) {
+						sw.playSound(null, self.getBlockPos(), shieldBlockSound(), SoundCategory.NEUTRAL, 0.8f, 1.5f);
+					}*/
+					//?} else {
+					if (self.getWorld() instanceof ServerWorld sw) {
+						sw.playSound(null, self.getBlockPos(), shieldBlockSound(), SoundCategory.NEUTRAL, 0.8f, 1.5f);
+					}
+					//?}
+				}
+				cir.setReturnValue(false);
+				cir.cancel();
+				return;
+			}
+
 			if (source.getAttacker() == null || !source.getAttacker().isPlayer()) return;
 
 			PlayerEntity player = (PlayerEntity) source.getAttacker();
@@ -169,7 +254,7 @@ public class ItemFrameMixin {
 			/*if (!(frame.getWorld() instanceof ServerWorld)) return;
 			ServerWorld serverWorld = (ServerWorld) frame.getWorld();*/
 			//?}
-			boolean isInvisibleFrame = FrameTags.has(frame);
+			boolean isInvisibleFrame = FrameTags.has(frame, FrameTags.INVISIBLE);
 
 			// Shears -> make frame invisible
 			if (itemStackInHand.getItem().getTranslationKey().equals("item.minecraft.shears") && !isInvisibleFrame) {
@@ -183,7 +268,7 @@ public class ItemFrameMixin {
 				serverWorld.playSound(null, frame.getBlockPos(), SoundEvents.ENTITY_SNOW_GOLEM_SHEAR, SoundCategory.NEUTRAL, 1f, 1.5f);
 				serverWorld.spawnParticles(ParticleTypes.CLOUD, frame.getX(), frame.getY(), frame.getZ(), 3, 0.0, 0.0, 0.0, 0.1);
 
-				FrameTags.add(frame);
+				FrameTags.add(frame, FrameTags.INVISIBLE);
 				if (!frame.getHeldItemStack().isEmpty()) {
 					frame.setInvisible(true);
 				}
@@ -200,10 +285,19 @@ public class ItemFrameMixin {
 				serverWorld.spawnParticles(ParticleTypes.CRIT, frame.getX(), frame.getY(), frame.getZ(), 10, 0.3, 0.3, 0.3, 0.1);
 
 				frame.setInvisible(false);
-				FrameTags.remove(frame);
+				FrameTags.remove(frame, FrameTags.INVISIBLE);
 
 				cir.setReturnValue(true);
 				cir.cancel();
+				return;
+			}
+
+			// var2: a normal player attack knocks the item out of a waxed frame -> remove
+			// the wax so the now-empty frame is reusable (waxing needs an item).
+			if (SimpleFramesMod.CONFIG.enableWax && FrameTags.has(frame, FrameTags.WAXED) && !frame.getHeldItemStack().isEmpty()) {
+				FrameTags.remove(frame, FrameTags.WAXED);
+				serverWorld.playSound(null, frame.getBlockPos(), SoundEvents.ITEM_AXE_WAX_OFF, SoundCategory.BLOCKS, 1f, 1.5f);
+				serverWorld.spawnParticles(ParticleTypes.WAX_OFF, frame.getX(), frame.getY(), frame.getZ(), 7, 0.2, 0.2, 0.2, 0.1);
 			}
 		} catch (Exception e) {
 			SimpleFramesMod.LOGGER.error("SimpleFrames error on ItemFrameMixin.damage(): " + e);
@@ -220,6 +314,60 @@ public class ItemFrameMixin {
 	/*private void syncAfterDamage(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {*/
 	//?}
 		updateState();
+	}
+
+	@Inject(at = @At("HEAD"), method = "interact", cancellable = true)
+	private void injectWax(PlayerEntity player, Hand hand, CallbackInfoReturnable<ActionResult> cir) {
+		try {
+			if (!SimpleFramesMod.CONFIG.enableWax) return;
+			ItemFrameEntity frame = ((ItemFrameEntity) (Object) this);
+			//? if >=1.21.10 {
+			/*if (!(frame.getEntityWorld() instanceof ServerWorld serverWorld)) return;*/
+			//?} else {
+			if (!(frame.getWorld() instanceof ServerWorld serverWorld)) return;
+			//?}
+			ItemStack held = player.getStackInHand(hand);
+			boolean waxed = FrameTags.has(frame, FrameTags.WAXED);
+
+			// Axe on a waxed frame -> remove wax.
+			if (waxed && held.getItem() instanceof AxeItem) {
+				if (!player.isCreative() && SimpleFramesMod.CONFIG.doAxeBreak) {
+					if (held.getDamage() < held.getMaxDamage() - 1) {
+						held.setDamage(held.getDamage() + 1);
+					} else {
+						held.decrement(1);
+					}
+				}
+				FrameTags.remove(frame, FrameTags.WAXED);
+				serverWorld.playSound(null, frame.getBlockPos(), SoundEvents.ITEM_AXE_WAX_OFF, SoundCategory.BLOCKS, 1f, 1.5f);
+				serverWorld.spawnParticles(ParticleTypes.WAX_OFF, frame.getX(), frame.getY(), frame.getZ(), 7, 0.2, 0.2, 0.2, 0.1);
+				cir.setReturnValue(ActionResult.SUCCESS);
+				cir.cancel();
+				return;
+			}
+
+			// Honeycomb on an un-waxed frame that holds an item -> wax it.
+			if (!waxed && held.getItem().getTranslationKey().equals("item.minecraft.honeycomb") && !frame.getHeldItemStack().isEmpty()) {
+				if (!player.isCreative()) held.decrement(1);
+				FrameTags.add(frame, FrameTags.WAXED);
+				serverWorld.playSound(null, frame.getBlockPos(), SoundEvents.ITEM_HONEYCOMB_WAX_ON, SoundCategory.BLOCKS, 1f, 1.5f);
+				serverWorld.spawnParticles(ParticleTypes.WAX_ON, frame.getX(), frame.getY(), frame.getZ(), 7, 0.2, 0.2, 0.2, 0.1);
+				cir.setReturnValue(ActionResult.SUCCESS);
+				cir.cancel();
+				return;
+			}
+
+			// Waxed frame -> block rotation / item change; denied feedback (main hand only).
+			if (waxed) {
+				if (hand == Hand.MAIN_HAND) {
+					serverWorld.playSound(null, frame.getBlockPos(), shieldBlockSound(), SoundCategory.NEUTRAL, 0.8f, 1.5f);
+				}
+				cir.setReturnValue(ActionResult.SUCCESS);
+				cir.cancel();
+			}
+		} catch (Exception e) {
+			SimpleFramesMod.LOGGER.error("SimpleFrames error on ItemFrameMixin.interact wax: " + e);
+		}
 	}
 
 	@Inject(at = @At("RETURN"), method = "interact")
@@ -241,7 +389,7 @@ public class ItemFrameMixin {
 		try {
 			if (!SimpleFramesMod.CONFIG.fixWithLeather) return;
 			ItemFrameEntity frame = ((ItemFrameEntity) (Object) this);
-			if (FrameTags.has(frame)) {
+			if (FrameTags.has(frame, FrameTags.INVISIBLE)) {
 				ItemStack item = cir.getReturnValue();
 				//? if >=1.20.5 {
 				item.set(DataComponentTypes.ITEM_NAME, Text.of(SimpleFramesMod.CONFIG.invisibleFrameName));
@@ -270,12 +418,23 @@ public class ItemFrameMixin {
 	private void updateState() {
 		try {
 			ItemFrameEntity frame = ((ItemFrameEntity) (Object) this);
-			if (FrameTags.has(frame)) {
+			if (FrameTags.has(frame, FrameTags.INVISIBLE)) {
 				frame.setInvisible(!frame.getHeldItemStack().isEmpty());
 			}
 		} catch (Exception e) {
 			SimpleFramesMod.LOGGER.error("SimpleFrames error on ItemFrameMixin.updateState(): " + e);
 		}
+	}
+
+	// SoundEvents.ITEM_SHIELD_BLOCK became a RegistryEntry.Reference<SoundEvent> (instead of a
+	// plain SoundEvent) starting 1.21.5, so playSound(..., SoundEvent, ...) needs .value() from
+	// that version on.
+	private static SoundEvent shieldBlockSound() {
+		//? if >=1.21.5 {
+		return SoundEvents.ITEM_SHIELD_BLOCK.value();
+		//?} else {
+		/*return SoundEvents.ITEM_SHIELD_BLOCK;*/
+		//?}
 	}
 }
 //?}

@@ -10,13 +10,16 @@ class FramesCommand(private val plugin: SimpleFramesPlugin) : CommandExecutor {
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
         if (args.isEmpty()) {
-            sender.sendMessage("${ChatColor.GOLD}[SimpleFrames] ${ChatColor.YELLOW}Usage: /simpleframes <doShearsBreak|doLeatherFix> [true|false]")
+            sender.sendMessage("${ChatColor.GOLD}[SimpleFrames] ${ChatColor.YELLOW}Usage: /simpleframes <doShearsBreak|doLeatherFix|enableWax|waxFullLock|doAxeBreak> [true|false]")
             return true
         }
         when (args[0].lowercase()) {
             "doshearsbreak" -> toggle(sender, args, "doShearsBreak", plugin.doShearsBreak) { plugin.setDoShearsBreak(it) }
             "doleatherfix" -> toggle(sender, args, "doLeatherFix", plugin.fixWithLeather) { plugin.setFixWithLeather(it) }
-            else -> sender.sendMessage("${ChatColor.RED}Unknown option '${args[0]}'. Use doShearsBreak or doLeatherFix.")
+            "enablewax" -> toggle(sender, args, "enableWax", plugin.enableWax) { plugin.setEnableWax(it) }
+            "waxfulllock" -> toggle(sender, args, "waxFullLock", plugin.waxFullLock) { plugin.setWaxFullLock(it) }
+            "doaxebreak" -> toggle(sender, args, "doAxeBreak", plugin.doAxeBreak) { plugin.setDoAxeBreak(it) }
+            else -> sender.sendMessage("${ChatColor.RED}Unknown option '${args[0]}'. Use doShearsBreak, doLeatherFix, enableWax, waxFullLock or doAxeBreak.")
         }
         return true
     }

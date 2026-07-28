@@ -22,7 +22,7 @@ public class GlowItemFrameMixin {
         try {
             if (!SimpleFramesMod.CONFIG.fixWithLeather) return;
             ItemFrame frame = ((ItemFrame) (Object) this);
-            if (FrameTags.has(frame)) {
+            if (FrameTags.has(frame, FrameTags.INVISIBLE)) {
                 ItemStack item = cir.getReturnValue();
                 item.set(DataComponents.ITEM_NAME, Component.literal(SimpleFramesMod.CONFIG.invisibleGlowFrameName));
                 item.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);
@@ -64,7 +64,7 @@ public class GlowItemFrameMixin {
         try {
             if (!SimpleFramesMod.CONFIG.fixWithLeather) return;
             ItemFrameEntity frame = ((ItemFrameEntity) (Object) this);
-            if (FrameTags.has(frame)) {
+            if (FrameTags.has(frame, FrameTags.INVISIBLE)) {
                 ItemStack item = cir.getReturnValue();
                 //? if >=1.20.5 {
                 item.set(DataComponentTypes.ITEM_NAME, Text.of(SimpleFramesMod.CONFIG.invisibleGlowFrameName));
