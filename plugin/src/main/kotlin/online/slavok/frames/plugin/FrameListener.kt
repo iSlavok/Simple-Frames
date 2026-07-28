@@ -157,6 +157,28 @@ class FrameListener(
         if (!plugin.fixWithLeather || !isInvisible(frame) || player.gameMode == GameMode.CREATIVE) return
 
         event.isCancelled = true
+        dropInvisibleFrameItem(frame)
+    }
+
+    // Support-block removal (PHYSICS) fires HangingBreakEvent, not the ByEntity
+    // subclass onBreak() handles -> without this, an invisible frame that loses its
+    // support drops as a plain (visible) frame item. HangingBreakByEntityEvent shares
+    // this event's HandlerList, so it also reaches this handler; delegate those to
+    // onBreak() instead of double-handling them here.
+    @EventHandler(ignoreCancelled = true)
+    fun onBreakPhysics(event: HangingBreakEvent) {
+        if (event is HangingBreakByEntityEvent) return // entity/player breaks are handled by onBreak
+        if (event.cause != HangingBreakEvent.RemoveCause.PHYSICS) return
+        val frame = event.entity as? ItemFrame ?: return
+        if (!plugin.fixWithLeather || !isInvisible(frame)) return
+        event.isCancelled = true
+        dropInvisibleFrameItem(frame)
+    }
+
+    // Drops the frame's content (if any) plus a tagged, invisible frame item, then
+    // removes the (now-empty) live entity. Used whenever an invisible frame is broken
+    // by something other than the shears/leather tool interaction.
+    private fun dropInvisibleFrameItem(frame: ItemFrame) {
         val world = frame.world
         val loc = frame.location
 
