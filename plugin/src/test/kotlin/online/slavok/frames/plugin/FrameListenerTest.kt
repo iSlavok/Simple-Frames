@@ -4,6 +4,8 @@ import org.bukkit.GameMode
 import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
+import org.bukkit.Sound
+import org.bukkit.SoundCategory
 import org.bukkit.World
 import org.bukkit.entity.ItemFrame
 import org.bukkit.entity.LivingEntity
@@ -13,6 +15,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent
 import org.bukkit.event.hanging.HangingBreakByEntityEvent
 import org.bukkit.event.hanging.HangingBreakEvent
 import org.bukkit.event.player.PlayerInteractEntityEvent
+import org.bukkit.inventory.EquipmentSlot
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.PlayerInventory
 import org.bukkit.persistence.PersistentDataContainer
@@ -75,10 +78,15 @@ class FrameListenerTest {
         return frame to pdc
     }
 
-    private fun interactEvent(frame: ItemFrame, player: Player): PlayerInteractEntityEvent {
+    private fun interactEvent(
+        frame: ItemFrame,
+        player: Player,
+        hand: EquipmentSlot = EquipmentSlot.HAND,
+    ): PlayerInteractEntityEvent {
         val event = mock<PlayerInteractEntityEvent>()
         whenever(event.rightClicked).thenReturn(frame)
         whenever(event.player).thenReturn(player)
+        whenever(event.hand).thenReturn(hand)
         return event
     }
 
@@ -273,6 +281,20 @@ class FrameListenerTest {
         FrameListener(plugin).onInteract(event)
 
         verify(event).isCancelled = true
+    }
+
+    // The off-hand copy of the right-click still blocks, but must NOT replay the denied
+    // click (the event fires once per hand; only the main hand plays the sound).
+    @Test
+    fun `off-hand right-click on a waxed frame blocks without a second denied sound`() {
+        val plugin = mockPlugin()
+        val (frame, _) = mockFrame(invisible = false, itemType = Material.DIAMOND, waxed = true)
+        val event = interactEvent(frame, mockPlayer(Material.AIR), hand = EquipmentSlot.OFF_HAND)
+
+        FrameListener(plugin).onInteract(event)
+
+        verify(event).isCancelled = true // still blocked
+        verify(frame.world, never()).playSound(any<Location>(), any<Sound>(), any<SoundCategory>(), any<Float>(), any<Float>())
     }
 
     @Test

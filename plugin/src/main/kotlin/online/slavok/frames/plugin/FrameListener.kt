@@ -23,6 +23,7 @@ import org.bukkit.event.hanging.HangingBreakByEntityEvent
 import org.bukkit.event.hanging.HangingBreakEvent
 import org.bukkit.event.hanging.HangingPlaceEvent
 import org.bukkit.event.player.PlayerInteractEntityEvent
+import org.bukkit.inventory.EquipmentSlot
 import org.bukkit.inventory.ItemFlag
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.Damageable
@@ -191,10 +192,11 @@ class FrameListener(private val plugin: SimpleFramesPlugin) : Listener {
                 return
             }
 
-            // Waxed frame -> block rotation / item change.
+            // Waxed frame -> block rotation / item change. The right-click fires once per
+            // hand; gate the click to the main hand so it doesn't play twice.
             if (waxed) {
                 event.isCancelled = true
-                deniedSound(frame)
+                if (event.hand == EquipmentSlot.HAND) deniedSound(frame)
                 return
             }
         }
