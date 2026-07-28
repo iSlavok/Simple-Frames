@@ -1,6 +1,7 @@
 package online.slavok.frames.plugin
 
 import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
@@ -38,5 +39,19 @@ class SimpleFramesPluginTest {
     fun `config defaults load`() {
         assertTrue(plugin.doShearsBreak)
         assertTrue(plugin.fixWithLeather)
+        assertEquals(ClickMode.LEFT, plugin.shearsButton)
+        assertEquals(ClickMode.LEFT, plugin.leatherButton)
+        assertEquals(ClickMode.BOTH, plugin.honeycombButton)
+        assertEquals(ClickMode.BOTH, plugin.axeButton)
+        assertTrue(plugin.doLeatherConsume)
+        assertTrue(plugin.doHoneycombConsume)
+    }
+
+    @Test
+    fun `button setter round-trips`() {
+        plugin.setShearsButton(ClickMode.RIGHT)
+        assertEquals(ClickMode.RIGHT, plugin.shearsButton)
+        plugin.setDoLeatherConsume(false)
+        assertTrue(!plugin.doLeatherConsume)
     }
 }
