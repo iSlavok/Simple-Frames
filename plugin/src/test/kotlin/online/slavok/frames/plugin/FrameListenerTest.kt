@@ -20,8 +20,11 @@ import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.PlayerInventory
 import org.bukkit.persistence.PersistentDataContainer
 import org.bukkit.persistence.PersistentDataType
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.mockbukkit.mockbukkit.MockBukkit
 import org.mockito.kotlin.any
+import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
@@ -46,6 +49,8 @@ class FrameListenerTest {
         whenever(p.enableWax).thenReturn(true)
         whenever(p.waxFullLock).thenReturn(false)
         whenever(p.doAxeBreak).thenReturn(true)
+        whenever(p.invisibleFrameName).thenReturn("Invisible Item Frame")
+        whenever(p.invisibleGlowFrameName).thenReturn("Invisible Glow Item Frame")
         return p
     }
 
@@ -418,5 +423,68 @@ class FrameListenerTest {
         FrameListener(plugin).onBreakFullLock(event)
 
         verify(event).isCancelled = true
+    }
+
+    // --- onBreakPhysics: support-block removal (bug fix) ---
+
+    // The bug: removing the block a frame is attached to fires HangingBreakEvent with
+    // cause PHYSICS, which is NOT a HangingBreakByEntityEvent, so onBreak() never sees
+    // it and the invisibility tag was lost. onBreakPhysics() must catch this case.
+    @Test
+    fun `PHYSICS break of a non-invisible frame is never cancelled`() {
+        val plugin = mockPlugin()
+        val (frame, _) = mockFrame(invisible = false, itemType = Material.AIR)
+        val event = mock<HangingBreakEvent>()
+        whenever(event.entity).thenReturn(frame)
+        whenever(event.cause).thenReturn(HangingBreakEvent.RemoveCause.PHYSICS)
+
+        FrameListener(plugin).onBreakPhysics(event)
+
+        verify(event, never()).isCancelled = true
+    }
+
+    // HangingBreakByEntityEvent shares HangingBreakEvent's HandlerList, so this handler
+    // also receives entity/player breaks -> it must ignore them and let onBreak() handle
+    // it instead, or the two handlers would double-process the same break.
+    @Test
+    fun `onBreakPhysics ignores HangingBreakByEntityEvent (delegates to onBreak)`() {
+        val plugin = mockPlugin()
+        val (frame, _) = mockFrame(invisible = true, itemType = Material.AIR)
+        val event = mock<HangingBreakByEntityEvent>()
+        whenever(event.entity).thenReturn(frame)
+        whenever(event.cause).thenReturn(HangingBreakEvent.RemoveCause.PHYSICS)
+
+        FrameListener(plugin).onBreakPhysics(event)
+
+        verify(event, never()).isCancelled = true
+    }
+
+    // The actual bug repro: a PHYSICS break of an invisible frame must be cancelled and
+    // must drop a tagged, invisible frame item instead of letting vanilla drop a plain
+    // one. Building/tagging that ItemStack needs a live Bukkit.getItemFactory(), so this
+    // one test runs under MockBukkit (the frame/event themselves stay plain Mockito mocks,
+    // matching the rest of this file's style).
+    @Test
+    fun `PHYSICS break of an invisible frame cancels and drops a tagged invisible frame item`() {
+        MockBukkit.mock()
+        try {
+            val plugin = mockPlugin()
+            val (frame, _) = mockFrame(invisible = true, itemType = Material.AIR)
+            val event = mock<HangingBreakEvent>()
+            whenever(event.entity).thenReturn(frame)
+            whenever(event.cause).thenReturn(HangingBreakEvent.RemoveCause.PHYSICS)
+
+            FrameListener(plugin).onBreakPhysics(event)
+
+            verify(event).isCancelled = true
+            verify(frame).remove()
+
+            val dropCaptor = argumentCaptor<ItemStack>()
+            verify(frame.world).dropItemNaturally(any<Location>(), dropCaptor.capture())
+            val dropped = dropCaptor.firstValue
+            assertTrue(dropped.itemMeta!!.persistentDataContainer.has(key, PersistentDataType.BYTE))
+        } finally {
+            MockBukkit.unmock()
+        }
     }
 }
