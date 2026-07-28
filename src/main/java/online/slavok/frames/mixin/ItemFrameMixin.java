@@ -34,6 +34,25 @@ public class ItemFrameMixin {
 		try {
 			ItemFrame self = ((ItemFrame) (Object) this);
 			if (SimpleFramesMod.CONFIG.enableWax && SimpleFramesMod.CONFIG.waxFullLock && FrameTags.has(self, FrameTags.WAXED)) {
+				// Under full lock, a deliberate left-click with an axe removes the wax
+				// (durability), instead of being denied — the only way left-click can act.
+				if (SimpleFramesMod.CONFIG.axeButton.allowsLeft() && source.getEntity() instanceof Player axePlayer
+						&& axePlayer.getMainHandItem().getItem() instanceof AxeItem) {
+					ItemStack axe = axePlayer.getMainHandItem();
+					if (!axePlayer.isCreative() && SimpleFramesMod.CONFIG.doAxeBreak && consumesDurability(world, axe)) {
+						if (axe.getDamageValue() < axe.getMaxDamage() - 1) {
+							axe.setDamageValue(axe.getDamageValue() + 1);
+						} else {
+							axe.shrink(1);
+						}
+					}
+					FrameTags.remove(self, FrameTags.WAXED);
+					world.playSound(null, self.blockPosition(), SoundEvents.AXE_WAX_OFF, SoundSource.BLOCKS, 1f, 1.5f);
+					world.sendParticles(ParticleTypes.WAX_OFF, self.getX(), self.getY(), self.getZ(), 7, 0.2, 0.2, 0.2, 0.1);
+					cir.setReturnValue(false);
+					cir.cancel();
+					return;
+				}
 				if (source.getEntity() instanceof Player && self.level() instanceof ServerLevel sl) {
 					sl.playSound(null, self.blockPosition(), SoundEvents.SHIELD_BLOCK.value(), SoundSource.NEUTRAL, 0.8f, 1.5f);
 				}
@@ -47,7 +66,7 @@ public class ItemFrameMixin {
 			ItemFrame frame = ((ItemFrame) (Object) this);
 			boolean isInvisibleFrame = FrameTags.has(frame, FrameTags.INVISIBLE);
 
-			if (itemStackInHand.getItem() == Items.SHEARS && !isInvisibleFrame) {
+			if (itemStackInHand.getItem() == Items.SHEARS && !isInvisibleFrame && SimpleFramesMod.CONFIG.shearsButton.allowsLeft()) {
 				if (!player.isCreative() && SimpleFramesMod.CONFIG.doShearsBreak && consumesDurability(world, itemStackInHand)) {
 					if (itemStackInHand.getDamageValue() < itemStackInHand.getMaxDamage() - 1) {
 						itemStackInHand.setDamageValue(itemStackInHand.getDamageValue() + 1);
@@ -66,12 +85,26 @@ public class ItemFrameMixin {
 				return;
 			}
 
-			if (itemStackInHand.getItem() == Items.LEATHER && isInvisibleFrame && SimpleFramesMod.CONFIG.fixWithLeather) {
-				if (!player.isCreative()) { itemStackInHand.shrink(1); }
+			if (itemStackInHand.getItem() == Items.LEATHER && isInvisibleFrame && SimpleFramesMod.CONFIG.fixWithLeather
+					&& SimpleFramesMod.CONFIG.leatherButton.allowsLeft()) {
+				if (!player.isCreative() && SimpleFramesMod.CONFIG.doLeatherConsume) { itemStackInHand.shrink(1); }
 				world.playSound(null, frame.blockPosition(), SoundEvents.ITEM_FRAME_PLACE, SoundSource.NEUTRAL, 1f, 1.5f);
 				world.sendParticles(ParticleTypes.CRIT, frame.getX(), frame.getY(), frame.getZ(), 10, 0.3, 0.3, 0.3, 0.1);
 				frame.setInvisible(false);
 				FrameTags.remove(frame, FrameTags.INVISIBLE);
+				cir.setReturnValue(true);
+				cir.cancel();
+				return;
+			}
+
+			// Left-click honeycomb -> wax (mode allows left). Un-waxed frame holding an item.
+			if (SimpleFramesMod.CONFIG.enableWax && SimpleFramesMod.CONFIG.honeycombButton.allowsLeft()
+					&& itemStackInHand.getItem() == Items.HONEYCOMB
+					&& !FrameTags.has(frame, FrameTags.WAXED) && !frame.getItem().isEmpty()) {
+				if (!player.isCreative() && SimpleFramesMod.CONFIG.doHoneycombConsume) { itemStackInHand.shrink(1); }
+				FrameTags.add(frame, FrameTags.WAXED);
+				world.playSound(null, frame.blockPosition(), SoundEvents.HONEYCOMB_WAX_ON, SoundSource.BLOCKS, 1f, 1.5f);
+				world.sendParticles(ParticleTypes.WAX_ON, frame.getX(), frame.getY(), frame.getZ(), 7, 0.2, 0.2, 0.2, 0.1);
 				cir.setReturnValue(true);
 				cir.cancel();
 				return;
@@ -98,13 +131,52 @@ public class ItemFrameMixin {
 	@Inject(at = @At("HEAD"), method = "interact", cancellable = true)
 	private void injectWax(Player player, InteractionHand hand, Vec3 hitPos, CallbackInfoReturnable<InteractionResult> cir) {
 		try {
-			if (!SimpleFramesMod.CONFIG.enableWax) return;
 			ItemFrame frame = ((ItemFrame) (Object) this);
 			if (!(frame.level() instanceof ServerLevel serverLevel)) return;
 			ItemStack held = player.getItemInHand(hand);
+			boolean invisibleFrame = FrameTags.has(frame, FrameTags.INVISIBLE);
+
+			// Tool interactions on right-click (invisibility is orthogonal to wax; handle
+			// before the wax block and independent of enableWax). Sneak + right-click =
+			// vanilla place/rotate; plain right-click = the mod action.
+			if (held.getItem() == Items.SHEARS && SimpleFramesMod.CONFIG.shearsButton.allowsRight() && !player.isShiftKeyDown()) {
+				if (!invisibleFrame) {
+					if (!player.isCreative() && SimpleFramesMod.CONFIG.doShearsBreak && consumesDurability(serverLevel, held)) {
+						if (held.getDamageValue() < held.getMaxDamage() - 1) {
+							held.setDamageValue(held.getDamageValue() + 1);
+						} else {
+							held.shrink(1);
+						}
+					}
+					FrameTags.add(frame, FrameTags.INVISIBLE);
+					if (!frame.getItem().isEmpty()) {
+						frame.setInvisible(true);
+					}
+					serverLevel.playSound(null, frame.blockPosition(), SoundEvents.SNOW_GOLEM_SHEAR, SoundSource.NEUTRAL, 1f, 1.5f);
+					serverLevel.sendParticles(ParticleTypes.CLOUD, frame.getX(), frame.getY(), frame.getZ(), 3, 0.0, 0.0, 0.0, 0.1);
+				}
+				cir.setReturnValue(InteractionResult.SUCCESS);
+				cir.cancel();
+				return;
+			}
+			if (held.getItem() == Items.LEATHER && SimpleFramesMod.CONFIG.fixWithLeather
+					&& SimpleFramesMod.CONFIG.leatherButton.allowsRight() && !player.isShiftKeyDown()) {
+				if (invisibleFrame) {
+					if (!player.isCreative() && SimpleFramesMod.CONFIG.doLeatherConsume) held.shrink(1);
+					frame.setInvisible(false);
+					FrameTags.remove(frame, FrameTags.INVISIBLE);
+					serverLevel.playSound(null, frame.blockPosition(), SoundEvents.ITEM_FRAME_PLACE, SoundSource.NEUTRAL, 1f, 1.5f);
+					serverLevel.sendParticles(ParticleTypes.CRIT, frame.getX(), frame.getY(), frame.getZ(), 10, 0.3, 0.3, 0.3, 0.1);
+				}
+				cir.setReturnValue(InteractionResult.SUCCESS);
+				cir.cancel();
+				return;
+			}
+
+			if (!SimpleFramesMod.CONFIG.enableWax) return;
 			boolean waxed = FrameTags.has(frame, FrameTags.WAXED);
 
-			if (waxed && held.getItem() instanceof AxeItem) {
+			if (waxed && held.getItem() instanceof AxeItem && SimpleFramesMod.CONFIG.axeButton.allowsRight()) {
 				if (!player.isCreative() && SimpleFramesMod.CONFIG.doAxeBreak && consumesDurability(serverLevel, held)) {
 					if (held.getDamageValue() < held.getMaxDamage() - 1) {
 						held.setDamageValue(held.getDamageValue() + 1);
@@ -120,8 +192,9 @@ public class ItemFrameMixin {
 				return;
 			}
 
-			if (!waxed && held.getItem() == Items.HONEYCOMB && !frame.getItem().isEmpty()) {
-				if (!player.isCreative()) held.shrink(1);
+			if (!waxed && held.getItem() == Items.HONEYCOMB && !frame.getItem().isEmpty()
+					&& SimpleFramesMod.CONFIG.honeycombButton.allowsRight()) {
+				if (!player.isCreative() && SimpleFramesMod.CONFIG.doHoneycombConsume) held.shrink(1);
 				FrameTags.add(frame, FrameTags.WAXED);
 				serverLevel.playSound(null, frame.blockPosition(), SoundEvents.HONEYCOMB_WAX_ON, SoundSource.BLOCKS, 1f, 1.5f);
 				serverLevel.sendParticles(ParticleTypes.WAX_ON, frame.getX(), frame.getY(), frame.getZ(), 7, 0.2, 0.2, 0.2, 0.1);
@@ -249,16 +322,33 @@ public class ItemFrameMixin {
 		try {
 			ItemFrameEntity self = ((ItemFrameEntity) (Object) this);
 			if (SimpleFramesMod.CONFIG.enableWax && SimpleFramesMod.CONFIG.waxFullLock && FrameTags.has(self, FrameTags.WAXED)) {
-				if (source.getAttacker() instanceof PlayerEntity) {
-					//? if >=1.21.10 {
-					/*if (self.getEntityWorld() instanceof ServerWorld sw) {
-						sw.playSound(null, self.getBlockPos(), shieldBlockSound(), SoundCategory.NEUTRAL, 0.8f, 1.5f);
-					}*/
-					//?} else {
-					if (self.getWorld() instanceof ServerWorld sw) {
-						sw.playSound(null, self.getBlockPos(), shieldBlockSound(), SoundCategory.NEUTRAL, 0.8f, 1.5f);
+				//? if >=1.21.10 {
+				/*ServerWorld lockWorld = self.getEntityWorld() instanceof ServerWorld ? (ServerWorld) self.getEntityWorld() : null;*/
+				//?} else {
+				ServerWorld lockWorld = self.getWorld() instanceof ServerWorld ? (ServerWorld) self.getWorld() : null;
+				//?}
+				// Under full lock, a deliberate left-click with an axe removes the wax
+				// (durability), instead of being denied — the only way left-click can act.
+				if (lockWorld != null && SimpleFramesMod.CONFIG.axeButton.allowsLeft()
+						&& source.getAttacker() instanceof PlayerEntity axePlayer
+						&& axePlayer.getMainHandStack().getItem() instanceof AxeItem) {
+					ItemStack axe = axePlayer.getMainHandStack();
+					if (!axePlayer.isCreative() && SimpleFramesMod.CONFIG.doAxeBreak && consumesDurability(lockWorld, axe)) {
+						if (axe.getDamage() < axe.getMaxDamage() - 1) {
+							axe.setDamage(axe.getDamage() + 1);
+						} else {
+							axe.decrement(1);
+						}
 					}
-					//?}
+					FrameTags.remove(self, FrameTags.WAXED);
+					lockWorld.playSound(null, self.getBlockPos(), SoundEvents.ITEM_AXE_WAX_OFF, SoundCategory.BLOCKS, 1f, 1.5f);
+					lockWorld.spawnParticles(ParticleTypes.WAX_OFF, self.getX(), self.getY(), self.getZ(), 7, 0.2, 0.2, 0.2, 0.1);
+					cir.setReturnValue(false);
+					cir.cancel();
+					return;
+				}
+				if (lockWorld != null && source.getAttacker() instanceof PlayerEntity) {
+					lockWorld.playSound(null, self.getBlockPos(), shieldBlockSound(), SoundCategory.NEUTRAL, 0.8f, 1.5f);
 				}
 				cir.setReturnValue(false);
 				cir.cancel();
@@ -280,7 +370,8 @@ public class ItemFrameMixin {
 			boolean isInvisibleFrame = FrameTags.has(frame, FrameTags.INVISIBLE);
 
 			// Shears -> make frame invisible
-			if (itemStackInHand.getItem().getTranslationKey().equals("item.minecraft.shears") && !isInvisibleFrame) {
+			if (itemStackInHand.getItem().getTranslationKey().equals("item.minecraft.shears") && !isInvisibleFrame
+					&& SimpleFramesMod.CONFIG.shearsButton.allowsLeft()) {
 				if (!player.isCreative() && SimpleFramesMod.CONFIG.doShearsBreak && consumesDurability(serverWorld, itemStackInHand)) {
 					if (itemStackInHand.getDamage() < itemStackInHand.getMaxDamage() - 1) {
 						itemStackInHand.setDamage(itemStackInHand.getDamage() + 1);
@@ -302,14 +393,28 @@ public class ItemFrameMixin {
 			}
 
 			// Leather -> restore frame back to normal
-			if (itemStackInHand.getItem().getTranslationKey().equals("item.minecraft.leather") && isInvisibleFrame && SimpleFramesMod.CONFIG.fixWithLeather) {
-				if (!player.isCreative()) { itemStackInHand.decrement(1); }
+			if (itemStackInHand.getItem().getTranslationKey().equals("item.minecraft.leather") && isInvisibleFrame && SimpleFramesMod.CONFIG.fixWithLeather
+					&& SimpleFramesMod.CONFIG.leatherButton.allowsLeft()) {
+				if (!player.isCreative() && SimpleFramesMod.CONFIG.doLeatherConsume) { itemStackInHand.decrement(1); }
 				serverWorld.playSound(null, frame.getBlockPos(), SoundEvents.ENTITY_ITEM_FRAME_PLACE, SoundCategory.NEUTRAL, 1f, 1.5f);
 				serverWorld.spawnParticles(ParticleTypes.CRIT, frame.getX(), frame.getY(), frame.getZ(), 10, 0.3, 0.3, 0.3, 0.1);
 
 				frame.setInvisible(false);
 				FrameTags.remove(frame, FrameTags.INVISIBLE);
 
+				cir.setReturnValue(true);
+				cir.cancel();
+				return;
+			}
+
+			// Left-click honeycomb -> wax (mode allows left). Un-waxed frame holding an item.
+			if (SimpleFramesMod.CONFIG.enableWax && SimpleFramesMod.CONFIG.honeycombButton.allowsLeft()
+					&& itemStackInHand.getItem().getTranslationKey().equals("item.minecraft.honeycomb")
+					&& !FrameTags.has(frame, FrameTags.WAXED) && !frame.getHeldItemStack().isEmpty()) {
+				if (!player.isCreative() && SimpleFramesMod.CONFIG.doHoneycombConsume) { itemStackInHand.decrement(1); }
+				FrameTags.add(frame, FrameTags.WAXED);
+				serverWorld.playSound(null, frame.getBlockPos(), SoundEvents.ITEM_HONEYCOMB_WAX_ON, SoundCategory.BLOCKS, 1f, 1.5f);
+				serverWorld.spawnParticles(ParticleTypes.WAX_ON, frame.getX(), frame.getY(), frame.getZ(), 7, 0.2, 0.2, 0.2, 0.1);
 				cir.setReturnValue(true);
 				cir.cancel();
 				return;
@@ -342,7 +447,6 @@ public class ItemFrameMixin {
 	@Inject(at = @At("HEAD"), method = "interact", cancellable = true)
 	private void injectWax(PlayerEntity player, Hand hand, CallbackInfoReturnable<ActionResult> cir) {
 		try {
-			if (!SimpleFramesMod.CONFIG.enableWax) return;
 			ItemFrameEntity frame = ((ItemFrameEntity) (Object) this);
 			//? if >=1.21.10 {
 			/*if (!(frame.getEntityWorld() instanceof ServerWorld serverWorld)) return;*/
@@ -350,10 +454,51 @@ public class ItemFrameMixin {
 			if (!(frame.getWorld() instanceof ServerWorld serverWorld)) return;
 			//?}
 			ItemStack held = player.getStackInHand(hand);
+			boolean invisibleFrame = FrameTags.has(frame, FrameTags.INVISIBLE);
+
+			// Tool interactions on right-click (invisibility is orthogonal to wax; handle
+			// before the wax block and independent of enableWax). Sneak + right-click =
+			// vanilla place/rotate; plain right-click = the mod action.
+			if (held.getItem().getTranslationKey().equals("item.minecraft.shears")
+					&& SimpleFramesMod.CONFIG.shearsButton.allowsRight() && !player.isSneaking()) {
+				if (!invisibleFrame) {
+					if (!player.isCreative() && SimpleFramesMod.CONFIG.doShearsBreak && consumesDurability(serverWorld, held)) {
+						if (held.getDamage() < held.getMaxDamage() - 1) {
+							held.setDamage(held.getDamage() + 1);
+						} else {
+							held.decrement(1);
+						}
+					}
+					FrameTags.add(frame, FrameTags.INVISIBLE);
+					if (!frame.getHeldItemStack().isEmpty()) {
+						frame.setInvisible(true);
+					}
+					serverWorld.playSound(null, frame.getBlockPos(), SoundEvents.ENTITY_SNOW_GOLEM_SHEAR, SoundCategory.NEUTRAL, 1f, 1.5f);
+					serverWorld.spawnParticles(ParticleTypes.CLOUD, frame.getX(), frame.getY(), frame.getZ(), 3, 0.0, 0.0, 0.0, 0.1);
+				}
+				cir.setReturnValue(ActionResult.SUCCESS);
+				cir.cancel();
+				return;
+			}
+			if (held.getItem().getTranslationKey().equals("item.minecraft.leather")
+					&& SimpleFramesMod.CONFIG.fixWithLeather && SimpleFramesMod.CONFIG.leatherButton.allowsRight() && !player.isSneaking()) {
+				if (invisibleFrame) {
+					if (!player.isCreative() && SimpleFramesMod.CONFIG.doLeatherConsume) held.decrement(1);
+					frame.setInvisible(false);
+					FrameTags.remove(frame, FrameTags.INVISIBLE);
+					serverWorld.playSound(null, frame.getBlockPos(), SoundEvents.ENTITY_ITEM_FRAME_PLACE, SoundCategory.NEUTRAL, 1f, 1.5f);
+					serverWorld.spawnParticles(ParticleTypes.CRIT, frame.getX(), frame.getY(), frame.getZ(), 10, 0.3, 0.3, 0.3, 0.1);
+				}
+				cir.setReturnValue(ActionResult.SUCCESS);
+				cir.cancel();
+				return;
+			}
+
+			if (!SimpleFramesMod.CONFIG.enableWax) return;
 			boolean waxed = FrameTags.has(frame, FrameTags.WAXED);
 
 			// Axe on a waxed frame -> remove wax.
-			if (waxed && held.getItem() instanceof AxeItem) {
+			if (waxed && held.getItem() instanceof AxeItem && SimpleFramesMod.CONFIG.axeButton.allowsRight()) {
 				if (!player.isCreative() && SimpleFramesMod.CONFIG.doAxeBreak && consumesDurability(serverWorld, held)) {
 					if (held.getDamage() < held.getMaxDamage() - 1) {
 						held.setDamage(held.getDamage() + 1);
@@ -370,8 +515,9 @@ public class ItemFrameMixin {
 			}
 
 			// Honeycomb on an un-waxed frame that holds an item -> wax it.
-			if (!waxed && held.getItem().getTranslationKey().equals("item.minecraft.honeycomb") && !frame.getHeldItemStack().isEmpty()) {
-				if (!player.isCreative()) held.decrement(1);
+			if (!waxed && held.getItem().getTranslationKey().equals("item.minecraft.honeycomb") && !frame.getHeldItemStack().isEmpty()
+					&& SimpleFramesMod.CONFIG.honeycombButton.allowsRight()) {
+				if (!player.isCreative() && SimpleFramesMod.CONFIG.doHoneycombConsume) held.decrement(1);
 				FrameTags.add(frame, FrameTags.WAXED);
 				serverWorld.playSound(null, frame.getBlockPos(), SoundEvents.ITEM_HONEYCOMB_WAX_ON, SoundCategory.BLOCKS, 1f, 1.5f);
 				serverWorld.spawnParticles(ParticleTypes.WAX_ON, frame.getX(), frame.getY(), frame.getZ(), 7, 0.2, 0.2, 0.2, 0.1);
