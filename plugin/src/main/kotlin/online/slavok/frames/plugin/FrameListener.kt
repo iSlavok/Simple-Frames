@@ -97,26 +97,48 @@ class FrameListener(
         effects(frame, Sound.ENTITY_ITEM_FRAME_PLACE, Particle.CRIT, 10, 0.3)
     }
 
+    // The four interactions as reusable mutations, shared by the left-click (attack/break)
+    // and right-click (interact) paths so both buttons behave identically.
+    private fun doShear(frame: ItemFrame, player: Player, hand: ItemStack) {
+        if (player.gameMode != GameMode.CREATIVE && plugin.doShearsBreak) damageTool(hand)
+        tag(frame)
+        syncVisibility(frame)
+        effects(frame, Sound.ENTITY_SNOW_GOLEM_SHEAR, Particle.CLOUD, 3, 0.0)
+    }
+
+    private fun doRestore(frame: ItemFrame, player: Player, hand: ItemStack) {
+        if (player.gameMode != GameMode.CREATIVE && plugin.doLeatherConsume) hand.amount -= 1
+        restore(frame)
+    }
+
+    private fun doWax(frame: ItemFrame, player: Player, hand: ItemStack) {
+        if (player.gameMode != GameMode.CREATIVE && plugin.doHoneycombConsume) hand.amount -= 1
+        setWaxed(frame)
+        effects(frame, Sound.ITEM_HONEYCOMB_WAX_ON, Particle.WAX_ON, 7, 0.2, SoundCategory.BLOCKS)
+    }
+
+    private fun doUnwax(frame: ItemFrame, player: Player, hand: ItemStack) {
+        if (player.gameMode != GameMode.CREATIVE && plugin.doAxeBreak) damageTool(hand)
+        unsetWaxed(frame)
+        effects(frame, Sound.ITEM_AXE_WAX_OFF, Particle.WAX_OFF, 7, 0.2, SoundCategory.BLOCKS)
+    }
+
     /**
-     * Left-click (attack) with shears/leather. Works for both events: a frame that
-     * holds an item fires EntityDamageByEntityEvent, an empty frame fires
-     * HangingBreakByEntityEvent — either way this makes it (in)visible instead of
-     * dropping/breaking. Returns true (and cancels via [cancel]) when it acted.
+     * Left-click (attack) with shears/leather, gated by each tool's [ClickMode]. Works
+     * for both events: a frame that holds an item fires EntityDamageByEntityEvent, an
+     * empty frame fires HangingBreakByEntityEvent — either way this makes it (in)visible
+     * instead of dropping/breaking. Returns true (and cancels via [cancel]) when it acted.
      */
     private fun tryTool(frame: ItemFrame, player: Player, cancel: () -> Unit): Boolean {
         val hand = player.inventory.itemInMainHand
-        if (hand.type == Material.SHEARS && !isInvisible(frame)) {
+        if (hand.type == Material.SHEARS && !isInvisible(frame) && plugin.shearsButton.allowsLeft()) {
             cancel()
-            if (player.gameMode != GameMode.CREATIVE && plugin.doShearsBreak) damageTool(hand)
-            tag(frame)
-            syncVisibility(frame)
-            effects(frame, Sound.ENTITY_SNOW_GOLEM_SHEAR, Particle.CLOUD, 3, 0.0)
+            doShear(frame, player, hand)
             return true
         }
-        if (hand.type == Material.LEATHER && isInvisible(frame) && plugin.fixWithLeather) {
+        if (hand.type == Material.LEATHER && isInvisible(frame) && plugin.fixWithLeather && plugin.leatherButton.allowsLeft()) {
             cancel()
-            if (player.gameMode != GameMode.CREATIVE) hand.amount -= 1
-            restore(frame)
+            doRestore(frame, player, hand)
             return true
         }
         return false
@@ -213,25 +235,37 @@ class FrameListener(
     fun onInteract(event: PlayerInteractEntityEvent) {
         val frame = event.rightClicked as? ItemFrame ?: return
 
+        // Tool interactions on right-click (invisibility is orthogonal to wax; handle
+        // before the wax block and independent of enableWax). Sneak + right-click = vanilla
+        // place/rotate; plain right-click = the mod action. The event fires once per hand:
+        // cancel both so nothing is placed, and mutate once (main hand) when applicable.
+        val rmbHand = event.player.inventory.itemInMainHand
+        if (rmbHand.type == Material.SHEARS && plugin.shearsButton.allowsRight() && !event.player.isSneaking) {
+            event.isCancelled = true
+            if (event.hand == EquipmentSlot.HAND && !isInvisible(frame)) doShear(frame, event.player, rmbHand)
+            return
+        }
+        if (rmbHand.type == Material.LEATHER && plugin.leatherButton.allowsRight() && plugin.fixWithLeather && !event.player.isSneaking) {
+            event.isCancelled = true
+            if (event.hand == EquipmentSlot.HAND && isInvisible(frame)) doRestore(frame, event.player, rmbHand)
+            return
+        }
+
         if (plugin.enableWax) {
             val held = event.player.inventory.itemInMainHand
             val waxed = isWaxed(frame)
 
             // Axe on a waxed frame -> remove wax.
-            if (waxed && isAxe(held.type)) {
+            if (waxed && isAxe(held.type) && plugin.axeButton.allowsRight()) {
                 event.isCancelled = true
-                if (event.player.gameMode != GameMode.CREATIVE && plugin.doAxeBreak) damageTool(held)
-                unsetWaxed(frame)
-                effects(frame, Sound.ITEM_AXE_WAX_OFF, Particle.WAX_OFF, 7, 0.2, SoundCategory.BLOCKS)
+                doUnwax(frame, event.player, held)
                 return
             }
 
             // Honeycomb on an un-waxed frame that holds an item -> wax it.
-            if (!waxed && held.type == Material.HONEYCOMB && frame.item.type != Material.AIR) {
+            if (!waxed && held.type == Material.HONEYCOMB && frame.item.type != Material.AIR && plugin.honeycombButton.allowsRight()) {
                 event.isCancelled = true
-                if (event.player.gameMode != GameMode.CREATIVE) held.amount -= 1
-                setWaxed(frame)
-                effects(frame, Sound.ITEM_HONEYCOMB_WAX_ON, Particle.WAX_ON, 7, 0.2, SoundCategory.BLOCKS)
+                doWax(frame, event.player, held)
                 return
             }
 

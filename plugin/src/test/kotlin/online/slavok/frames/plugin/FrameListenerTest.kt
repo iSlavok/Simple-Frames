@@ -49,19 +49,30 @@ class FrameListenerTest {
         whenever(p.enableWax).thenReturn(true)
         whenever(p.waxFullLock).thenReturn(false)
         whenever(p.doAxeBreak).thenReturn(true)
+        whenever(p.shearsButton).thenReturn(ClickMode.LEFT)
+        whenever(p.leatherButton).thenReturn(ClickMode.LEFT)
+        whenever(p.honeycombButton).thenReturn(ClickMode.BOTH)
+        whenever(p.axeButton).thenReturn(ClickMode.BOTH)
+        whenever(p.doLeatherConsume).thenReturn(true)
+        whenever(p.doHoneycombConsume).thenReturn(true)
         whenever(p.invisibleFrameName).thenReturn("Invisible Item Frame")
         whenever(p.invisibleGlowFrameName).thenReturn("Invisible Glow Item Frame")
         return p
     }
 
-    private fun mockPlayer(handType: Material): Player {
+    private fun mockPlayer(
+        handType: Material,
+        gameMode: GameMode = GameMode.CREATIVE,
+        sneaking: Boolean = false,
+    ): Player {
         val hand = mock<ItemStack>()
         whenever(hand.type).thenReturn(handType)
         val inv = mock<PlayerInventory>()
         whenever(inv.itemInMainHand).thenReturn(hand)
         val player = mock<Player>()
         whenever(player.inventory).thenReturn(inv)
-        whenever(player.gameMode).thenReturn(GameMode.CREATIVE)
+        whenever(player.gameMode).thenReturn(gameMode)
+        whenever(player.isSneaking).thenReturn(sneaking)
         return player
     }
 
@@ -238,6 +249,102 @@ class FrameListenerTest {
         FrameListener(plugin).onDamage(event)
 
         verify(frame, never()).setVisible(any())
+    }
+
+    // --- Configurable buttons: right-click shears/leather + consume toggles ---
+
+    @Test
+    fun `right-click shears (RIGHT mode) make an empty frame invisible`() {
+        val plugin = mockPlugin()
+        whenever(plugin.shearsButton).thenReturn(ClickMode.RIGHT)
+        val (frame, pdc) = mockFrame(invisible = false, itemType = Material.AIR)
+        val event = interactEvent(frame, mockPlayer(Material.SHEARS))
+
+        FrameListener(plugin).onInteract(event)
+
+        verify(event).isCancelled = true
+        verify(pdc).set(key, PersistentDataType.BYTE, 1.toByte())
+    }
+
+    @Test
+    fun `sneak right-click shears does not act (vanilla place)`() {
+        val plugin = mockPlugin()
+        whenever(plugin.shearsButton).thenReturn(ClickMode.RIGHT)
+        val (frame, pdc) = mockFrame(invisible = false, itemType = Material.AIR)
+        val event = interactEvent(frame, mockPlayer(Material.SHEARS, sneaking = true))
+
+        FrameListener(plugin).onInteract(event)
+
+        verify(event, never()).isCancelled = true
+        verify(pdc, never()).set(key, PersistentDataType.BYTE, 1.toByte())
+    }
+
+    @Test
+    fun `right-click leather (RIGHT mode) restores an invisible frame`() {
+        val plugin = mockPlugin()
+        whenever(plugin.leatherButton).thenReturn(ClickMode.RIGHT)
+        val (frame, pdc) = mockFrame(invisible = true, itemType = Material.AIR)
+        val event = interactEvent(frame, mockPlayer(Material.LEATHER))
+
+        FrameListener(plugin).onInteract(event)
+
+        verify(event).isCancelled = true
+        verify(pdc).remove(key)
+    }
+
+    @Test
+    fun `sneak right-click leather does not restore (vanilla place)`() {
+        val plugin = mockPlugin()
+        whenever(plugin.leatherButton).thenReturn(ClickMode.RIGHT)
+        val (frame, pdc) = mockFrame(invisible = true, itemType = Material.AIR)
+        val event = interactEvent(frame, mockPlayer(Material.LEATHER, sneaking = true))
+
+        FrameListener(plugin).onInteract(event)
+
+        verify(pdc, never()).remove(key)
+    }
+
+    @Test
+    fun `right-click honeycomb does nothing when honeycombButton is LEFT`() {
+        val plugin = mockPlugin()
+        whenever(plugin.honeycombButton).thenReturn(ClickMode.LEFT)
+        val (frame, pdc) = mockFrame(invisible = false, itemType = Material.DIAMOND)
+        val event = interactEvent(frame, mockPlayer(Material.HONEYCOMB))
+
+        FrameListener(plugin).onInteract(event)
+
+        verify(pdc, never()).set(waxKey, PersistentDataType.BYTE, 1.toByte())
+    }
+
+    @Test
+    fun `honeycomb is not consumed when doHoneycombConsume is false`() {
+        val plugin = mockPlugin()
+        whenever(plugin.doHoneycombConsume).thenReturn(false)
+        val (frame, pdc) = mockFrame(invisible = false, itemType = Material.DIAMOND)
+        val player = mockPlayer(Material.HONEYCOMB, gameMode = GameMode.SURVIVAL)
+        val hand = player.inventory.itemInMainHand
+        val event = interactEvent(frame, player)
+
+        FrameListener(plugin).onInteract(event)
+
+        verify(pdc).set(waxKey, PersistentDataType.BYTE, 1.toByte())
+        verify(hand, never()).amount = any()
+    }
+
+    @Test
+    fun `leather is not consumed when doLeatherConsume is false`() {
+        val plugin = mockPlugin()
+        whenever(plugin.leatherButton).thenReturn(ClickMode.RIGHT)
+        whenever(plugin.doLeatherConsume).thenReturn(false)
+        val (frame, pdc) = mockFrame(invisible = true, itemType = Material.AIR)
+        val player = mockPlayer(Material.LEATHER, gameMode = GameMode.SURVIVAL)
+        val hand = player.inventory.itemInMainHand
+        val event = interactEvent(frame, player)
+
+        FrameListener(plugin).onInteract(event)
+
+        verify(pdc).remove(key)
+        verify(hand, never()).amount = any()
     }
 
     // --- Wax feature ---
