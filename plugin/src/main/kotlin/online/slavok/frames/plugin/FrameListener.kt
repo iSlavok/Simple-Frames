@@ -30,7 +30,11 @@ import org.bukkit.inventory.meta.Damageable
 import org.bukkit.inventory.meta.ItemMeta
 import org.bukkit.persistence.PersistentDataType
 
-class FrameListener(private val plugin: SimpleFramesPlugin) : Listener {
+class FrameListener(
+    private val plugin: SimpleFramesPlugin,
+    // Injectable for deterministic tests; production uses a fresh Random.
+    private val random: java.util.Random = java.util.Random(),
+) : Listener {
 
     private fun isInvisible(frame: ItemFrame): Boolean =
         frame.persistentDataContainer.has(plugin.invisibleKey, PersistentDataType.BYTE)
@@ -57,7 +61,24 @@ class FrameListener(private val plugin: SimpleFramesPlugin) : Listener {
 
     private fun isAxe(material: Material): Boolean = material.name.endsWith("_AXE")
 
-    private fun damageAxe(item: ItemStack) {
+    /**
+     * Vanilla Unbreaking mechanic for a non-armor tool: a durability point is applied
+     * only with probability 1/(level+1). Level 0 -> always applied (nextInt(1) == 0),
+     * preserving the old unconditional behaviour.
+     */
+    internal fun consumesDurability(unbreakingLevel: Int, random: java.util.Random): Boolean =
+        unbreakingLevel <= 0 || random.nextInt(unbreakingLevel + 1) == 0
+
+    /**
+     * Consume one durability point from a tool (shears/axe), honouring Unbreaking.
+     * Resolves the enchant by registry key so the DURABILITY -> UNBREAKING constant
+     * rename doesn't matter across versions.
+     */
+    private fun damageTool(item: ItemStack) {
+        val unbreaking = Enchantment.getByKey(NamespacedKey.minecraft("unbreaking"))
+        val level = if (unbreaking != null) item.getEnchantmentLevel(unbreaking) else 0
+        if (!consumesDurability(level, random)) return
+
         val meta = item.itemMeta
         if (meta is Damageable) {
             val next = meta.damage + 1
@@ -86,7 +107,7 @@ class FrameListener(private val plugin: SimpleFramesPlugin) : Listener {
         val hand = player.inventory.itemInMainHand
         if (hand.type == Material.SHEARS && !isInvisible(frame)) {
             cancel()
-            if (player.gameMode != GameMode.CREATIVE && plugin.doShearsBreak) damageShears(hand)
+            if (player.gameMode != GameMode.CREATIVE && plugin.doShearsBreak) damageTool(hand)
             tag(frame)
             syncVisibility(frame)
             effects(frame, Sound.ENTITY_SNOW_GOLEM_SHEAR, Particle.CLOUD, 3, 0.0)
@@ -199,7 +220,7 @@ class FrameListener(private val plugin: SimpleFramesPlugin) : Listener {
             // Axe on a waxed frame -> remove wax.
             if (waxed && isAxe(held.type)) {
                 event.isCancelled = true
-                if (event.player.gameMode != GameMode.CREATIVE && plugin.doAxeBreak) damageAxe(held)
+                if (event.player.gameMode != GameMode.CREATIVE && plugin.doAxeBreak) damageTool(held)
                 unsetWaxed(frame)
                 effects(frame, Sound.ITEM_AXE_WAX_OFF, Particle.WAX_OFF, 7, 0.2, SoundCategory.BLOCKS)
                 return
@@ -271,19 +292,6 @@ class FrameListener(private val plugin: SimpleFramesPlugin) : Listener {
         // Explicit white: the hidden glint enchant bumps rarity to RARE, which would
         // otherwise colour the name aqua.
         meta.displayName(Component.text(name).decoration(TextDecoration.ITALIC, false).color(NamedTextColor.WHITE))
-    }
-
-    private fun damageShears(item: ItemStack) {
-        val meta = item.itemMeta
-        if (meta is Damageable) {
-            val next = meta.damage + 1
-            if (next >= item.type.maxDurability) {
-                item.amount -= 1
-            } else {
-                meta.damage = next
-                item.itemMeta = meta
-            }
-        }
     }
 
     private fun effects(

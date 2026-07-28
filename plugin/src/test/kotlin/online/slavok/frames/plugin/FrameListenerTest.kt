@@ -487,4 +487,41 @@ class FrameListenerTest {
             MockBukkit.unmock()
         }
     }
+
+    // --- Unbreaking / durability consumption ---
+    // Vanilla non-armor tool rule: a durability point applies with probability
+    // 1/(level+1). Level 0 preserves the old always-consume behaviour.
+
+    @Test
+    fun `level-0 unbreaking always consumes durability (always damages)`() {
+        val listener = FrameListener(mockPlugin())
+        val r = java.util.Random(42)
+        repeat(10_000) {
+            assertTrue(listener.consumesDurability(0, r), "level 0 must always damage")
+        }
+    }
+
+    @Test
+    fun `a negative unbreaking level always consumes durability`() {
+        val listener = FrameListener(mockPlugin())
+        val r = java.util.Random(7)
+        repeat(1_000) {
+            assertTrue(listener.consumesDurability(-1, r), "guarded level must always damage")
+        }
+    }
+
+    // Unbreaking III consumes durability ~1/4 of the time. Assert a tolerance band
+    // (not an exact count) so the statistical test stays stable.
+    @Test
+    fun `unbreaking level 3 consumes durability about a quarter of the time`() {
+        val listener = FrameListener(mockPlugin())
+        val r = java.util.Random(12345)
+        val iterations = 100_000
+        var consumed = 0
+        repeat(iterations) {
+            if (listener.consumesDurability(3, r)) consumed++
+        }
+        val ratio = consumed.toDouble() / iterations
+        assertTrue(ratio in 0.24..0.26, "expected ~0.25 for Unbreaking III, got $ratio")
+    }
 }

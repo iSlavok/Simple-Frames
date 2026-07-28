@@ -48,7 +48,7 @@ public class ItemFrameMixin {
 			boolean isInvisibleFrame = FrameTags.has(frame, FrameTags.INVISIBLE);
 
 			if (itemStackInHand.getItem() == Items.SHEARS && !isInvisibleFrame) {
-				if (!player.isCreative() && SimpleFramesMod.CONFIG.doShearsBreak) {
+				if (!player.isCreative() && SimpleFramesMod.CONFIG.doShearsBreak && consumesDurability(world, itemStackInHand)) {
 					if (itemStackInHand.getDamageValue() < itemStackInHand.getMaxDamage() - 1) {
 						itemStackInHand.setDamageValue(itemStackInHand.getDamageValue() + 1);
 					} else {
@@ -105,7 +105,7 @@ public class ItemFrameMixin {
 			boolean waxed = FrameTags.has(frame, FrameTags.WAXED);
 
 			if (waxed && held.getItem() instanceof AxeItem) {
-				if (!player.isCreative() && SimpleFramesMod.CONFIG.doAxeBreak) {
+				if (!player.isCreative() && SimpleFramesMod.CONFIG.doAxeBreak && consumesDurability(serverLevel, held)) {
 					if (held.getDamageValue() < held.getMaxDamage() - 1) {
 						held.setDamageValue(held.getDamageValue() + 1);
 					} else {
@@ -180,6 +180,29 @@ public class ItemFrameMixin {
 			}
 		} catch (Exception e) {
 			SimpleFramesMod.LOGGER.error("SimpleFrames error on ItemFrameMixin.updateState(): " + e);
+		}
+	}
+
+	// Vanilla Unbreaking for a non-armor tool: a durability point is applied only with
+	// probability 1/(level+1) (skipped when random.nextInt(level+1) != 0). Level 0 ->
+	// always applied, preserving the old unconditional behaviour.
+	private static boolean consumesDurability(ServerLevel level, ItemStack stack) {
+		int unbreaking = unbreakingLevel(level, stack);
+		return unbreaking <= 0 || level.getRandom().nextInt(unbreaking + 1) == 0;
+	}
+
+	// Cross-version Unbreaking level lookup. Returns 0 on any failure, which is the safe
+	// fallback (always consume durability = the previous behaviour).
+	private static int unbreakingLevel(ServerLevel level, ItemStack stack) {
+		try {
+			net.minecraft.core.Holder<net.minecraft.world.item.enchantment.Enchantment> holder =
+					level.registryAccess()
+							.lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT)
+							.getOrThrow(net.minecraft.world.item.enchantment.Enchantments.UNBREAKING);
+			return net.minecraft.world.item.enchantment.EnchantmentHelper.getItemEnchantmentLevel(holder, stack);
+		} catch (Exception e) {
+			SimpleFramesMod.LOGGER.error("SimpleFrames error resolving Unbreaking level: " + e);
+			return 0;
 		}
 	}
 }
@@ -258,7 +281,7 @@ public class ItemFrameMixin {
 
 			// Shears -> make frame invisible
 			if (itemStackInHand.getItem().getTranslationKey().equals("item.minecraft.shears") && !isInvisibleFrame) {
-				if (!player.isCreative() && SimpleFramesMod.CONFIG.doShearsBreak) {
+				if (!player.isCreative() && SimpleFramesMod.CONFIG.doShearsBreak && consumesDurability(serverWorld, itemStackInHand)) {
 					if (itemStackInHand.getDamage() < itemStackInHand.getMaxDamage() - 1) {
 						itemStackInHand.setDamage(itemStackInHand.getDamage() + 1);
 					} else {
@@ -331,7 +354,7 @@ public class ItemFrameMixin {
 
 			// Axe on a waxed frame -> remove wax.
 			if (waxed && held.getItem() instanceof AxeItem) {
-				if (!player.isCreative() && SimpleFramesMod.CONFIG.doAxeBreak) {
+				if (!player.isCreative() && SimpleFramesMod.CONFIG.doAxeBreak && consumesDurability(serverWorld, held)) {
 					if (held.getDamage() < held.getMaxDamage() - 1) {
 						held.setDamage(held.getDamage() + 1);
 					} else {
@@ -435,6 +458,46 @@ public class ItemFrameMixin {
 		//?} else {
 		/*return SoundEvents.ITEM_SHIELD_BLOCK;*/
 		//?}
+	}
+
+	// Vanilla Unbreaking for a non-armor tool: a durability point is applied only with
+	// probability 1/(level+1) (skipped when random.nextInt(level+1) != 0). Level 0 ->
+	// always applied, preserving the old unconditional behaviour.
+	private static boolean consumesDurability(ServerWorld world, ItemStack stack) {
+		int level = unbreakingLevel(world, stack);
+		return level <= 0 || world.getRandom().nextInt(level + 1) == 0;
+	}
+
+	// Cross-version Unbreaking level lookup. Returns 0 on any failure, which is the safe
+	// fallback (always consume durability = the previous behaviour). The enchantment
+	// registry rework landed in 1.21: from then on UNBREAKING is a RegistryKey and the
+	// level is looked up through a RegistryEntry; before that it's a plain Enchantment.
+	// 1.21.2+ resolves UNBREAKING via manager.getOrThrow(...).getOrThrow(...); 1.21-1.21.1
+	// the manager exposes getOptionalWrapper (renamed to getOrThrow in 1.21.2) and only
+	// RegistryWrapper.Impl turns a RegistryKey into a RegistryEntry; <1.21 UNBREAKING is a
+	// plain Enchantment object.
+	private static int unbreakingLevel(ServerWorld world, ItemStack stack) {
+		try {
+			//? if >=1.21.2 {
+			net.minecraft.registry.entry.RegistryEntry<net.minecraft.enchantment.Enchantment> entry =
+					world.getRegistryManager()
+							.getOrThrow(net.minecraft.registry.RegistryKeys.ENCHANTMENT)
+							.getOrThrow(net.minecraft.enchantment.Enchantments.UNBREAKING);
+			return net.minecraft.enchantment.EnchantmentHelper.getLevel(entry, stack);
+			//?} elif >=1.21 {
+			/*net.minecraft.registry.entry.RegistryEntry<net.minecraft.enchantment.Enchantment> entry =
+					world.getRegistryManager()
+							.getOptionalWrapper(net.minecraft.registry.RegistryKeys.ENCHANTMENT).orElseThrow()
+							.getOrThrow(net.minecraft.enchantment.Enchantments.UNBREAKING);
+			return net.minecraft.enchantment.EnchantmentHelper.getLevel(entry, stack);*/
+			//?} else {
+			/*return net.minecraft.enchantment.EnchantmentHelper.getLevel(
+					net.minecraft.enchantment.Enchantments.UNBREAKING, stack);*/
+			//?}
+		} catch (Exception e) {
+			SimpleFramesMod.LOGGER.error("SimpleFrames error resolving Unbreaking level: " + e);
+			return 0;
+		}
 	}
 }
 //?}

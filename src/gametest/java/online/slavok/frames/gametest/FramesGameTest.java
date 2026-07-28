@@ -92,6 +92,35 @@ public class FramesGameTest {
                 .require("simpleframes.command", 3)
                 .test(world.getServer().getCommandSource());
 
+        // Deterministic Unbreaking-level round-trip against a real registry: enchanting a
+        // stack with Unbreaking 3 and reading it back must return 3 via the same
+        // cross-version lookup the mixin uses. Guards against a silent registry-resolution
+        // failure that compilation can't catch (the mixin would fall back to level 0 and
+        // wrongly consume durability on every use).
+        net.minecraft.item.ItemStack shears = new net.minecraft.item.ItemStack(net.minecraft.item.Items.SHEARS);
+        int unbreakingLevel;
+        //? if >=1.21.2 {
+        net.minecraft.registry.entry.RegistryEntry<net.minecraft.enchantment.Enchantment> unbreaking =
+                world.getRegistryManager()
+                        .getOrThrow(net.minecraft.registry.RegistryKeys.ENCHANTMENT)
+                        .getOrThrow(net.minecraft.enchantment.Enchantments.UNBREAKING);
+        shears.addEnchantment(unbreaking, 3);
+        unbreakingLevel = net.minecraft.enchantment.EnchantmentHelper.getLevel(unbreaking, shears);
+        //?} elif >=1.21 {
+        /*net.minecraft.registry.entry.RegistryEntry<net.minecraft.enchantment.Enchantment> unbreaking =
+                world.getRegistryManager()
+                        .getOptionalWrapper(net.minecraft.registry.RegistryKeys.ENCHANTMENT).orElseThrow()
+                        .getOrThrow(net.minecraft.enchantment.Enchantments.UNBREAKING);
+        shears.addEnchantment(unbreaking, 3);
+        unbreakingLevel = net.minecraft.enchantment.EnchantmentHelper.getLevel(unbreaking, shears);*/
+        //?} else {
+        /*shears.addEnchantment(net.minecraft.enchantment.Enchantments.UNBREAKING, 3);
+        unbreakingLevel = net.minecraft.enchantment.EnchantmentHelper.getLevel(net.minecraft.enchantment.Enchantments.UNBREAKING, shears);*/
+        //?}
+        if (unbreakingLevel != 3) {
+            throw new RuntimeException("Unbreaking level lookup returned " + unbreakingLevel + ", expected 3");
+        }
+
         //? if >=1.22 {
         /*context.succeed();*/
         //?} else {
