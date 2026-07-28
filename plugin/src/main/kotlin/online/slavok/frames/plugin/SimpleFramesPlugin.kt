@@ -43,7 +43,11 @@ open class SimpleFramesPlugin : JavaPlugin() {
         waxedKey = NamespacedKey(this, "waxedframe")
 
         server.pluginManager.registerEvents(FrameListener(this), this)
-        getCommand("simpleframes")?.setExecutor(FramesCommand(this))
+        val framesCommand = FramesCommand(this)
+        getCommand("simpleframes")?.let {
+            it.setExecutor(framesCommand)
+            it.tabCompleter = framesCommand
+        }
 
         logger.info("Simple Frames enabled")
     }
