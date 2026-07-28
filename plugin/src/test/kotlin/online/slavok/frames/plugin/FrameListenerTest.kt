@@ -470,6 +470,59 @@ class FrameListenerTest {
         verify(pdc).set(key, PersistentDataType.BYTE, 1.toByte())
     }
 
+    // --- Configurable buttons: left-click honeycomb + left-click axe under full lock ---
+
+    @Test
+    fun `left-click honeycomb waxes a frame holding an item`() {
+        val plugin = mockPlugin()
+        val (frame, pdc) = mockFrame(invisible = false, itemType = Material.DIAMOND)
+        val event = damageEvent(frame, mockPlayer(Material.HONEYCOMB))
+
+        FrameListener(plugin).onDamage(event)
+
+        verify(pdc).set(waxKey, PersistentDataType.BYTE, 1.toByte())
+        verify(event).isCancelled = true
+    }
+
+    @Test
+    fun `left-click honeycomb does nothing when honeycombButton is RIGHT`() {
+        val plugin = mockPlugin()
+        whenever(plugin.honeycombButton).thenReturn(ClickMode.RIGHT)
+        val (frame, pdc) = mockFrame(invisible = false, itemType = Material.DIAMOND)
+        val event = damageEvent(frame, mockPlayer(Material.HONEYCOMB))
+
+        FrameListener(plugin).onDamage(event)
+
+        verify(pdc, never()).set(waxKey, PersistentDataType.BYTE, 1.toByte())
+    }
+
+    @Test
+    fun `left-click axe under full lock removes the wax`() {
+        val plugin = mockPlugin()
+        whenever(plugin.waxFullLock).thenReturn(true)
+        val (frame, pdc) = mockFrame(invisible = false, itemType = Material.DIAMOND, waxed = true)
+        val event = damageEvent(frame, mockPlayer(Material.DIAMOND_AXE))
+
+        FrameListener(plugin).onDamageFullLock(event)
+
+        verify(event).isCancelled = true
+        verify(pdc).remove(waxKey)
+    }
+
+    @Test
+    fun `left-click axe under full lock is denied when axeButton is RIGHT`() {
+        val plugin = mockPlugin()
+        whenever(plugin.waxFullLock).thenReturn(true)
+        whenever(plugin.axeButton).thenReturn(ClickMode.RIGHT)
+        val (frame, pdc) = mockFrame(invisible = false, itemType = Material.DIAMOND, waxed = true)
+        val event = damageEvent(frame, mockPlayer(Material.DIAMOND_AXE))
+
+        FrameListener(plugin).onDamageFullLock(event)
+
+        verify(event).isCancelled = true
+        verify(pdc, never()).remove(waxKey)
+    }
+
     private fun projectileDamageEvent(frame: ItemFrame, shooter: Any?): EntityDamageByEntityEvent {
         val arrow = mock<Projectile>()
         whenever(arrow.shooter).thenReturn(shooter as? org.bukkit.projectiles.ProjectileSource)

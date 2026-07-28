@@ -153,6 +153,16 @@ class FrameListener(
         if (player != null) {
             if (tryTool(frame, player) { event.isCancelled = true }) return
 
+            // Left-click honeycomb -> wax (mode allows left). Un-waxed frame holding an item.
+            val lmbHand = player.inventory.itemInMainHand
+            if (plugin.enableWax && plugin.honeycombButton.allowsLeft()
+                && lmbHand.type == Material.HONEYCOMB && !isWaxed(frame) && frame.item.type != Material.AIR
+            ) {
+                event.isCancelled = true
+                doWax(frame, player, lmbHand)
+                return
+            }
+
             if (isInvisible(frame) && frame.item.type != Material.AIR) {
                 frame.setVisible(true) // the item is about to be removed -> visible
             }
@@ -292,6 +302,20 @@ class FrameListener(
     fun onDamageFullLock(event: EntityDamageEvent) {
         val frame = event.entity as? ItemFrame ?: return
         if (!(plugin.enableWax && plugin.waxFullLock && isWaxed(frame))) return
+
+        // Under full lock, a deliberate left-click with an axe removes the wax (durability),
+        // instead of being denied — the only place left-click can act, since full lock blocks
+        // the normal item-pop. Non-axe hits (or axe RIGHT-only mode) fall through to the deny.
+        val damager = (event as? EntityDamageByEntityEvent)?.damager as? Player
+        if (damager != null && plugin.axeButton.allowsLeft()) {
+            val hand = damager.inventory.itemInMainHand
+            if (isAxe(hand.type)) {
+                event.isCancelled = true
+                doUnwax(frame, damager, hand)
+                return
+            }
+        }
+
         event.isCancelled = true
         // Click feedback only when a player is the one being denied (not fire/explosion).
         if (event is EntityDamageByEntityEvent && event.damager is Player) deniedSound(frame)
