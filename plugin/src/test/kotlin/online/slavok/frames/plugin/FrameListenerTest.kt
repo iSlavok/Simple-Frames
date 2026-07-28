@@ -73,6 +73,7 @@ class FrameListenerTest {
         whenever(player.inventory).thenReturn(inv)
         whenever(player.gameMode).thenReturn(gameMode)
         whenever(player.isSneaking).thenReturn(sneaking)
+        whenever(player.hasPermission(any<String>())).thenReturn(true)
         return player
     }
 
@@ -520,6 +521,61 @@ class FrameListenerTest {
         FrameListener(plugin).onDamageFullLock(event)
 
         verify(event).isCancelled = true
+        verify(pdc, never()).remove(waxKey)
+    }
+
+    // --- Permission nodes: a missing node skips the action (no cancel) ---
+
+    @Test
+    fun `no shear permission -- shears do nothing`() {
+        val plugin = mockPlugin()
+        val (frame, pdc) = mockFrame(invisible = false, itemType = Material.DIAMOND)
+        val player = mockPlayer(Material.SHEARS)
+        whenever(player.hasPermission("simpleframes.use.shear")).thenReturn(false)
+        val event = damageEvent(frame, player)
+
+        FrameListener(plugin).onDamage(event)
+
+        verify(pdc, never()).set(key, PersistentDataType.BYTE, 1.toByte())
+        verify(event, never()).isCancelled = true
+    }
+
+    @Test
+    fun `no restore permission -- leather does not restore`() {
+        val plugin = mockPlugin()
+        val (frame, pdc) = mockFrame(invisible = true, itemType = Material.DIAMOND)
+        val player = mockPlayer(Material.LEATHER)
+        whenever(player.hasPermission("simpleframes.use.restore")).thenReturn(false)
+        val event = damageEvent(frame, player)
+
+        FrameListener(plugin).onDamage(event)
+
+        verify(pdc, never()).remove(key)
+    }
+
+    @Test
+    fun `no wax permission -- honeycomb does not wax`() {
+        val plugin = mockPlugin()
+        val (frame, pdc) = mockFrame(invisible = false, itemType = Material.DIAMOND)
+        val player = mockPlayer(Material.HONEYCOMB)
+        whenever(player.hasPermission("simpleframes.use.wax")).thenReturn(false)
+        val event = interactEvent(frame, player)
+
+        FrameListener(plugin).onInteract(event)
+
+        verify(pdc, never()).set(waxKey, PersistentDataType.BYTE, 1.toByte())
+    }
+
+    @Test
+    fun `no unwax permission -- axe does not remove wax`() {
+        val plugin = mockPlugin()
+        val (frame, pdc) = mockFrame(invisible = false, itemType = Material.DIAMOND, waxed = true)
+        val player = mockPlayer(Material.DIAMOND_AXE)
+        whenever(player.hasPermission("simpleframes.use.unwax")).thenReturn(false)
+        val event = interactEvent(frame, player)
+
+        FrameListener(plugin).onInteract(event)
+
         verify(pdc, never()).remove(waxKey)
     }
 

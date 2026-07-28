@@ -131,12 +131,14 @@ class FrameListener(
      */
     private fun tryTool(frame: ItemFrame, player: Player, cancel: () -> Unit): Boolean {
         val hand = player.inventory.itemInMainHand
-        if (hand.type == Material.SHEARS && !isInvisible(frame) && plugin.shearsButton.allowsLeft()) {
+        if (hand.type == Material.SHEARS && !isInvisible(frame) && plugin.shearsButton.allowsLeft()
+            && player.hasPermission("simpleframes.use.shear")) {
             cancel()
             doShear(frame, player, hand)
             return true
         }
-        if (hand.type == Material.LEATHER && isInvisible(frame) && plugin.fixWithLeather && plugin.leatherButton.allowsLeft()) {
+        if (hand.type == Material.LEATHER && isInvisible(frame) && plugin.fixWithLeather && plugin.leatherButton.allowsLeft()
+            && player.hasPermission("simpleframes.use.restore")) {
             cancel()
             doRestore(frame, player, hand)
             return true
@@ -157,6 +159,7 @@ class FrameListener(
             val lmbHand = player.inventory.itemInMainHand
             if (plugin.enableWax && plugin.honeycombButton.allowsLeft()
                 && lmbHand.type == Material.HONEYCOMB && !isWaxed(frame) && frame.item.type != Material.AIR
+                && player.hasPermission("simpleframes.use.wax")
             ) {
                 event.isCancelled = true
                 doWax(frame, player, lmbHand)
@@ -250,12 +253,14 @@ class FrameListener(
         // place/rotate; plain right-click = the mod action. The event fires once per hand:
         // cancel both so nothing is placed, and mutate once (main hand) when applicable.
         val rmbHand = event.player.inventory.itemInMainHand
-        if (rmbHand.type == Material.SHEARS && plugin.shearsButton.allowsRight() && !event.player.isSneaking) {
+        if (rmbHand.type == Material.SHEARS && plugin.shearsButton.allowsRight() && !event.player.isSneaking
+            && event.player.hasPermission("simpleframes.use.shear")) {
             event.isCancelled = true
             if (event.hand == EquipmentSlot.HAND && !isInvisible(frame)) doShear(frame, event.player, rmbHand)
             return
         }
-        if (rmbHand.type == Material.LEATHER && plugin.leatherButton.allowsRight() && plugin.fixWithLeather && !event.player.isSneaking) {
+        if (rmbHand.type == Material.LEATHER && plugin.leatherButton.allowsRight() && plugin.fixWithLeather && !event.player.isSneaking
+            && event.player.hasPermission("simpleframes.use.restore")) {
             event.isCancelled = true
             if (event.hand == EquipmentSlot.HAND && isInvisible(frame)) doRestore(frame, event.player, rmbHand)
             return
@@ -266,14 +271,16 @@ class FrameListener(
             val waxed = isWaxed(frame)
 
             // Axe on a waxed frame -> remove wax.
-            if (waxed && isAxe(held.type) && plugin.axeButton.allowsRight()) {
+            if (waxed && isAxe(held.type) && plugin.axeButton.allowsRight()
+                && event.player.hasPermission("simpleframes.use.unwax")) {
                 event.isCancelled = true
                 doUnwax(frame, event.player, held)
                 return
             }
 
             // Honeycomb on an un-waxed frame that holds an item -> wax it.
-            if (!waxed && held.type == Material.HONEYCOMB && frame.item.type != Material.AIR && plugin.honeycombButton.allowsRight()) {
+            if (!waxed && held.type == Material.HONEYCOMB && frame.item.type != Material.AIR && plugin.honeycombButton.allowsRight()
+                && event.player.hasPermission("simpleframes.use.wax")) {
                 event.isCancelled = true
                 doWax(frame, event.player, held)
                 return
@@ -307,7 +314,7 @@ class FrameListener(
         // instead of being denied — the only place left-click can act, since full lock blocks
         // the normal item-pop. Non-axe hits (or axe RIGHT-only mode) fall through to the deny.
         val damager = (event as? EntityDamageByEntityEvent)?.damager as? Player
-        if (damager != null && plugin.axeButton.allowsLeft()) {
+        if (damager != null && plugin.axeButton.allowsLeft() && damager.hasPermission("simpleframes.use.unwax")) {
             val hand = damager.inventory.itemInMainHand
             if (isAxe(hand.type)) {
                 event.isCancelled = true

@@ -14,3 +14,15 @@ permissions:
   simpleframes.command:
     description: Access to the Simple Frames configuration commands.
     default: op
+  simpleframes.use.shear:
+    description: Make an item frame invisible with shears.
+    default: true
+  simpleframes.use.restore:
+    description: Restore an invisible frame with leather.
+    default: true
+  simpleframes.use.wax:
+    description: Wax a frame with honeycomb.
+    default: true
+  simpleframes.use.unwax:
+    description: Remove wax from a frame with an axe.
+    default: true
