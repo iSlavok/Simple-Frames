@@ -249,20 +249,22 @@ class FrameListener(
         val frame = event.rightClicked as? ItemFrame ?: return
 
         // Tool interactions on right-click (invisibility is orthogonal to wax; handle
-        // before the wax block and independent of enableWax). Sneak + right-click = vanilla
-        // place/rotate; plain right-click = the mod action. The event fires once per hand:
-        // cancel both so nothing is placed, and mutate once (main hand) when applicable.
+        // before the wax block and independent of enableWax). Plain right-click does the mod
+        // action when it applies (shears -> a visible frame, leather -> an invisible one) and
+        // cancels so the tool isn't placed; when there is no action to do (or the player is
+        // sneaking) it falls through to vanilla, so the tool can be placed / the item rotated.
+        // Mutation is gated to the main hand; the off-hand copy of the event only cancels.
         val rmbHand = event.player.inventory.itemInMainHand
-        if (rmbHand.type == Material.SHEARS && plugin.shearsButton.allowsRight() && !event.player.isSneaking
+        if (rmbHand.type == Material.SHEARS && !isInvisible(frame) && plugin.shearsButton.allowsRight() && !event.player.isSneaking
             && event.player.hasPermission("simpleframes.use.shear")) {
             event.isCancelled = true
-            if (event.hand == EquipmentSlot.HAND && !isInvisible(frame)) doShear(frame, event.player, rmbHand)
+            if (event.hand == EquipmentSlot.HAND) doShear(frame, event.player, rmbHand)
             return
         }
-        if (rmbHand.type == Material.LEATHER && plugin.leatherButton.allowsRight() && plugin.fixWithLeather && !event.player.isSneaking
+        if (rmbHand.type == Material.LEATHER && isInvisible(frame) && plugin.fixWithLeather && plugin.leatherButton.allowsRight() && !event.player.isSneaking
             && event.player.hasPermission("simpleframes.use.restore")) {
             event.isCancelled = true
-            if (event.hand == EquipmentSlot.HAND && isInvisible(frame)) doRestore(frame, event.player, rmbHand)
+            if (event.hand == EquipmentSlot.HAND) doRestore(frame, event.player, rmbHand)
             return
         }
 
@@ -295,7 +297,9 @@ class FrameListener(
             }
         }
 
-        if (!isInvisible(frame)) return
+        // Placing an item into an empty invisible frame -> pre-hide it. Gate to the main
+        // hand so the off-hand copy of a tool right-click can't hide a just-tagged empty frame.
+        if (!isInvisible(frame) || event.hand != EquipmentSlot.HAND) return
         val hand = event.player.inventory.itemInMainHand
         if (frame.item.type == Material.AIR && hand.type != Material.AIR) {
             frame.setVisible(false)

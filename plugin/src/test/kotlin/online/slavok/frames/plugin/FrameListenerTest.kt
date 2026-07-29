@@ -202,25 +202,19 @@ class FrameListenerTest {
     fun `placing an item in an empty invisible frame hides it`() {
         val plugin = mockPlugin()
         val (frame, _) = mockFrame(invisible = true, itemType = Material.AIR)
-        val player = mockPlayer(Material.DIAMOND)
-        val event = mock<PlayerInteractEntityEvent>()
-        whenever(event.rightClicked).thenReturn(frame)
-        whenever(event.player).thenReturn(player)
+        val event = interactEvent(frame, mockPlayer(Material.DIAMOND))
 
         FrameListener(plugin).onInteract(event)
 
         verify(frame).setVisible(false)
     }
 
-    // Restore is left-click only: right-clicking leather just puts it into the frame.
+    // Restore is left-click only by default: right-clicking leather just puts it into the frame.
     @Test
     fun `right-click leather does not restore`() {
         val plugin = mockPlugin()
         val (frame, pdc) = mockFrame(invisible = true, itemType = Material.AIR)
-        val player = mockPlayer(Material.LEATHER)
-        val event = mock<PlayerInteractEntityEvent>()
-        whenever(event.rightClicked).thenReturn(frame)
-        whenever(event.player).thenReturn(player)
+        val event = interactEvent(frame, mockPlayer(Material.LEATHER))
 
         FrameListener(plugin).onInteract(event)
 
@@ -303,6 +297,45 @@ class FrameListenerTest {
         FrameListener(plugin).onInteract(event)
 
         verify(pdc, never()).remove(key)
+    }
+
+    @Test
+    fun `right-click shears on an already-invisible frame falls through to placement`() {
+        val plugin = mockPlugin()
+        whenever(plugin.shearsButton).thenReturn(ClickMode.RIGHT)
+        val (frame, pdc) = mockFrame(invisible = true, itemType = Material.AIR)
+        val event = interactEvent(frame, mockPlayer(Material.SHEARS))
+
+        FrameListener(plugin).onInteract(event)
+
+        verify(event, never()).isCancelled = true // not cancelled -> vanilla can place the shears
+        verify(pdc, never()).set(key, PersistentDataType.BYTE, 1.toByte())
+    }
+
+    @Test
+    fun `right-click leather on a visible frame falls through to placement`() {
+        val plugin = mockPlugin()
+        whenever(plugin.leatherButton).thenReturn(ClickMode.RIGHT)
+        val (frame, _) = mockFrame(invisible = false, itemType = Material.AIR)
+        val event = interactEvent(frame, mockPlayer(Material.LEATHER))
+
+        FrameListener(plugin).onInteract(event)
+
+        verify(event, never()).isCancelled = true // not cancelled -> vanilla can place the leather
+    }
+
+    // The off-hand copy of a make-invisible right-click must not hide the just-tagged empty
+    // frame (an empty invisible frame stays visible until an item is placed).
+    @Test
+    fun `off-hand right-click shears does not hide a just-made-invisible empty frame`() {
+        val plugin = mockPlugin()
+        whenever(plugin.shearsButton).thenReturn(ClickMode.RIGHT)
+        val (frame, _) = mockFrame(invisible = true, itemType = Material.AIR)
+        val event = interactEvent(frame, mockPlayer(Material.SHEARS), hand = EquipmentSlot.OFF_HAND)
+
+        FrameListener(plugin).onInteract(event)
+
+        verify(frame, never()).setVisible(false)
     }
 
     @Test

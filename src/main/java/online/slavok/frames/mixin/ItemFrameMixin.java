@@ -137,37 +137,35 @@ public class ItemFrameMixin {
 			boolean invisibleFrame = FrameTags.has(frame, FrameTags.INVISIBLE);
 
 			// Tool interactions on right-click (invisibility is orthogonal to wax; handle
-			// before the wax block and independent of enableWax). Sneak + right-click =
-			// vanilla place/rotate; plain right-click = the mod action.
-			if (held.getItem() == Items.SHEARS && SimpleFramesMod.CONFIG.shearsButton.allowsRight() && !player.isShiftKeyDown()) {
-				if (!invisibleFrame) {
-					if (!player.isCreative() && SimpleFramesMod.CONFIG.doShearsBreak && consumesDurability(serverLevel, held)) {
-						if (held.getDamageValue() < held.getMaxDamage() - 1) {
-							held.setDamageValue(held.getDamageValue() + 1);
-						} else {
-							held.shrink(1);
-						}
+			// before the wax block and independent of enableWax). Plain right-click does the
+			// mod action when it applies (shears -> a visible frame, leather -> an invisible
+			// one) and cancels so the tool isn't placed; with no action to do (or when
+			// sneaking) it falls through to vanilla so the tool can be placed / the item rotated.
+			if (held.getItem() == Items.SHEARS && !invisibleFrame && SimpleFramesMod.CONFIG.shearsButton.allowsRight() && !player.isShiftKeyDown()) {
+				if (!player.isCreative() && SimpleFramesMod.CONFIG.doShearsBreak && consumesDurability(serverLevel, held)) {
+					if (held.getDamageValue() < held.getMaxDamage() - 1) {
+						held.setDamageValue(held.getDamageValue() + 1);
+					} else {
+						held.shrink(1);
 					}
-					FrameTags.add(frame, FrameTags.INVISIBLE);
-					if (!frame.getItem().isEmpty()) {
-						frame.setInvisible(true);
-					}
-					serverLevel.playSound(null, frame.blockPosition(), SoundEvents.SNOW_GOLEM_SHEAR, SoundSource.NEUTRAL, 1f, 1.5f);
-					serverLevel.sendParticles(ParticleTypes.CLOUD, frame.getX(), frame.getY(), frame.getZ(), 3, 0.0, 0.0, 0.0, 0.1);
 				}
+				FrameTags.add(frame, FrameTags.INVISIBLE);
+				if (!frame.getItem().isEmpty()) {
+					frame.setInvisible(true);
+				}
+				serverLevel.playSound(null, frame.blockPosition(), SoundEvents.SNOW_GOLEM_SHEAR, SoundSource.NEUTRAL, 1f, 1.5f);
+				serverLevel.sendParticles(ParticleTypes.CLOUD, frame.getX(), frame.getY(), frame.getZ(), 3, 0.0, 0.0, 0.0, 0.1);
 				cir.setReturnValue(InteractionResult.SUCCESS);
 				cir.cancel();
 				return;
 			}
-			if (held.getItem() == Items.LEATHER && SimpleFramesMod.CONFIG.fixWithLeather
+			if (held.getItem() == Items.LEATHER && invisibleFrame && SimpleFramesMod.CONFIG.fixWithLeather
 					&& SimpleFramesMod.CONFIG.leatherButton.allowsRight() && !player.isShiftKeyDown()) {
-				if (invisibleFrame) {
-					if (!player.isCreative() && SimpleFramesMod.CONFIG.doLeatherConsume) held.shrink(1);
-					frame.setInvisible(false);
-					FrameTags.remove(frame, FrameTags.INVISIBLE);
-					serverLevel.playSound(null, frame.blockPosition(), SoundEvents.ITEM_FRAME_PLACE, SoundSource.NEUTRAL, 1f, 1.5f);
-					serverLevel.sendParticles(ParticleTypes.CRIT, frame.getX(), frame.getY(), frame.getZ(), 10, 0.3, 0.3, 0.3, 0.1);
-				}
+				if (!player.isCreative() && SimpleFramesMod.CONFIG.doLeatherConsume) held.shrink(1);
+				frame.setInvisible(false);
+				FrameTags.remove(frame, FrameTags.INVISIBLE);
+				serverLevel.playSound(null, frame.blockPosition(), SoundEvents.ITEM_FRAME_PLACE, SoundSource.NEUTRAL, 1f, 1.5f);
+				serverLevel.sendParticles(ParticleTypes.CRIT, frame.getX(), frame.getY(), frame.getZ(), 10, 0.3, 0.3, 0.3, 0.1);
 				cir.setReturnValue(InteractionResult.SUCCESS);
 				cir.cancel();
 				return;
@@ -457,38 +455,36 @@ public class ItemFrameMixin {
 			boolean invisibleFrame = FrameTags.has(frame, FrameTags.INVISIBLE);
 
 			// Tool interactions on right-click (invisibility is orthogonal to wax; handle
-			// before the wax block and independent of enableWax). Sneak + right-click =
-			// vanilla place/rotate; plain right-click = the mod action.
-			if (held.getItem().getTranslationKey().equals("item.minecraft.shears")
+			// before the wax block and independent of enableWax). Plain right-click does the
+			// mod action when it applies (shears -> a visible frame, leather -> an invisible
+			// one) and cancels so the tool isn't placed; with no action to do (or when
+			// sneaking) it falls through to vanilla so the tool can be placed / the item rotated.
+			if (held.getItem().getTranslationKey().equals("item.minecraft.shears") && !invisibleFrame
 					&& SimpleFramesMod.CONFIG.shearsButton.allowsRight() && !player.isSneaking()) {
-				if (!invisibleFrame) {
-					if (!player.isCreative() && SimpleFramesMod.CONFIG.doShearsBreak && consumesDurability(serverWorld, held)) {
-						if (held.getDamage() < held.getMaxDamage() - 1) {
-							held.setDamage(held.getDamage() + 1);
-						} else {
-							held.decrement(1);
-						}
+				if (!player.isCreative() && SimpleFramesMod.CONFIG.doShearsBreak && consumesDurability(serverWorld, held)) {
+					if (held.getDamage() < held.getMaxDamage() - 1) {
+						held.setDamage(held.getDamage() + 1);
+					} else {
+						held.decrement(1);
 					}
-					FrameTags.add(frame, FrameTags.INVISIBLE);
-					if (!frame.getHeldItemStack().isEmpty()) {
-						frame.setInvisible(true);
-					}
-					serverWorld.playSound(null, frame.getBlockPos(), SoundEvents.ENTITY_SNOW_GOLEM_SHEAR, SoundCategory.NEUTRAL, 1f, 1.5f);
-					serverWorld.spawnParticles(ParticleTypes.CLOUD, frame.getX(), frame.getY(), frame.getZ(), 3, 0.0, 0.0, 0.0, 0.1);
 				}
+				FrameTags.add(frame, FrameTags.INVISIBLE);
+				if (!frame.getHeldItemStack().isEmpty()) {
+					frame.setInvisible(true);
+				}
+				serverWorld.playSound(null, frame.getBlockPos(), SoundEvents.ENTITY_SNOW_GOLEM_SHEAR, SoundCategory.NEUTRAL, 1f, 1.5f);
+				serverWorld.spawnParticles(ParticleTypes.CLOUD, frame.getX(), frame.getY(), frame.getZ(), 3, 0.0, 0.0, 0.0, 0.1);
 				cir.setReturnValue(ActionResult.SUCCESS);
 				cir.cancel();
 				return;
 			}
-			if (held.getItem().getTranslationKey().equals("item.minecraft.leather")
+			if (held.getItem().getTranslationKey().equals("item.minecraft.leather") && invisibleFrame
 					&& SimpleFramesMod.CONFIG.fixWithLeather && SimpleFramesMod.CONFIG.leatherButton.allowsRight() && !player.isSneaking()) {
-				if (invisibleFrame) {
-					if (!player.isCreative() && SimpleFramesMod.CONFIG.doLeatherConsume) held.decrement(1);
-					frame.setInvisible(false);
-					FrameTags.remove(frame, FrameTags.INVISIBLE);
-					serverWorld.playSound(null, frame.getBlockPos(), SoundEvents.ENTITY_ITEM_FRAME_PLACE, SoundCategory.NEUTRAL, 1f, 1.5f);
-					serverWorld.spawnParticles(ParticleTypes.CRIT, frame.getX(), frame.getY(), frame.getZ(), 10, 0.3, 0.3, 0.3, 0.1);
-				}
+				if (!player.isCreative() && SimpleFramesMod.CONFIG.doLeatherConsume) held.decrement(1);
+				frame.setInvisible(false);
+				FrameTags.remove(frame, FrameTags.INVISIBLE);
+				serverWorld.playSound(null, frame.getBlockPos(), SoundEvents.ENTITY_ITEM_FRAME_PLACE, SoundCategory.NEUTRAL, 1f, 1.5f);
+				serverWorld.spawnParticles(ParticleTypes.CRIT, frame.getX(), frame.getY(), frame.getZ(), 10, 0.3, 0.3, 0.3, 0.1);
 				cir.setReturnValue(ActionResult.SUCCESS);
 				cir.cancel();
 				return;

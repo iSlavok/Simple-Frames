@@ -30,7 +30,7 @@ Wax is not kept when the frame is broken. Consumption is vanilla-style (one hone
 
 **Interaction buttons** (configurable):
 
-By default shears and leather act on **left-click**; honeycomb and axe act on **both** buttons. Change any of them to `LEFT`, `RIGHT`, or `BOTH`. When shears or leather also accept right-click, sneaking flips the meaning: **plain right-click = the mod action, sneak + right-click = vanilla** (place the item into an empty frame, or rotate a full one). The axe on left-click only matters while `waxFullLock` is on — otherwise a left-click just knocks the item out (which frees the wax anyway).
+By default shears and leather act on **left-click**; honeycomb and axe act on **both** buttons. Change any of them to `LEFT`, `RIGHT`, or `BOTH`. When shears or leather also accept right-click, a **plain right-click does the mod action when it applies** (shears on a visible frame → invisible, leather on an invisible frame → restored) and otherwise just places the item like vanilla; **sneak + right-click always places/rotates**, so you can place the tool even when the action would fire. The axe on left-click only matters while `waxFullLock` is on — otherwise a left-click just knocks the item out (which frees the wax anyway).
 
 ## Commands
 
