@@ -26,9 +26,15 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import org.spongepowered.asm.mixin.Unique;
 
 @Mixin(ItemFrame.class)
 public class ItemFrameMixin {
+	// Set when an axe removes wax under full lock (see injectDamage): makes the very next
+	// item-pop a no-op, so the same attack that unwaxes can't also knock the held item out
+	// on versions where the damage handler makes a second pass once the WAXED tag is gone.
+	@Unique private boolean simpleframes$protectItemDrop = false;
+
 	@Inject(at = @At("HEAD"), method = "hurtServer", cancellable = true)
 	private void injectDamage(ServerLevel world, DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
 		try {
@@ -46,6 +52,7 @@ public class ItemFrameMixin {
 							axe.shrink(1);
 						}
 					}
+					this.simpleframes$protectItemDrop = true;
 					FrameTags.remove(self, FrameTags.WAXED);
 					world.playSound(null, self.blockPosition(), SoundEvents.AXE_WAX_OFF, SoundSource.BLOCKS, 1f, 1.5f);
 					world.sendParticles(ParticleTypes.WAX_OFF, self.getX(), self.getY(), self.getZ(), 7, 0.2, 0.2, 0.2, 0.1);
@@ -221,6 +228,18 @@ public class ItemFrameMixin {
 	@Inject(at = @At("RETURN"), method = "dropItem")
 	private void injectDropItem(ServerLevel world, Entity entity, CallbackInfo ci) {
 		updateState();
+	}
+
+	// Guards the item during an axe-under-full-lock un-wax (see injectDamage): the private
+	// item-pop dropItem(ServerLevel, Entity, boolean) is skipped for exactly one call while
+	// the flag is set, so the un-waxing attack cannot also knock the held item out. The 3-arg
+	// signature binds this to the pop overload, not the public frame-break dropItem.
+	@Inject(at = @At("HEAD"), method = "dropItem", cancellable = true)
+	private void guardItemDrop(ServerLevel world, Entity entity, boolean dropSelf, CallbackInfo ci) {
+		if (this.simpleframes$protectItemDrop) {
+			this.simpleframes$protectItemDrop = false;
+			ci.cancel();
+		}
 	}
 
 	@Inject(at = @At("TAIL"), method = "getFrameItemStack", cancellable = true)
