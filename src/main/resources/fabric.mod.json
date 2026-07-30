@@ -24,7 +24,13 @@
         "adapter": "kotlin",
         "value": "online.slavok.frames.SimpleFramesMod"
       }
-    ]
+    ]<% if (gui) { %>,
+    "modmenu": [
+      {
+        "adapter": "kotlin",
+        "value": "online.slavok.frames.client.ModMenuIntegration"
+      }
+    ]<% } %>
   },
   "mixins": [
     "simpleframes.mixins.json"
@@ -38,6 +44,8 @@
     "fabric-language-kotlin": "*"
   },
   "suggests": {
-    "fabric-permissions-api-v0": "*"
+    "fabric-permissions-api-v0": "*"<% if (gui) { %>,
+    "yet_another_config_lib_v3": "*",
+    "modmenu": "*"<% } %>
   }
 }

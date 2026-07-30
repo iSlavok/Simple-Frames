@@ -26,7 +26,18 @@ data class Mc(
     // fabric-api that only wins the version conflict when this anchor's own
     // fabric-api is at least that new. Older anchors rely on the unit tests instead.
     val gametest: Boolean = false,
-)
+    // Client config screen (YACL) + ModMenu button. YACL exists for every anchor
+    // except 1.18.2, so that one ships without the GUI (its .conf still works).
+    // Both are optional (suggests, not depends): the mod is server-side and YACL is
+    // client-only, so a hard depend would fail a dedicated server.
+    // yacl is the Modrinth version id (maven.modrinth:yacl:<id>). Modrinth's maven
+    // serves every YACL build uniformly; isxander's maven renamed the artifact after
+    // 3.1.x, which made per-anchor coordinates fragile.
+    val yacl: String = "",
+    val modmenu: String = "",
+) {
+    val gui: Boolean get() = yacl.isNotEmpty()
+}
 
 val mcVersion = stonecutter.current.version
 val mc = when (mcVersion) {
@@ -47,6 +58,8 @@ val mc = when (mcVersion) {
         java = 17,
         depends = ">=1.19 <1.20",
         gameVersions = listOf("1.19", "1.19.1", "1.19.2", "1.19.3", "1.19.4"),
+        yacl = "3.1.1+1.19.4-fabric",
+        modmenu = "6.3.1",
     )
     "1.20.4" -> Mc(
         yarn = "1.20.4+build.3",
@@ -56,6 +69,8 @@ val mc = when (mcVersion) {
         java = 17,
         depends = ">=1.20 <1.20.5",
         gameVersions = listOf("1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4"),
+        yacl = "3.6.6+1.20.4-fabric",
+        modmenu = "9.2.0",
     )
     "1.20.6" -> Mc(
         yarn = "1.20.6+build.3",
@@ -66,6 +81,8 @@ val mc = when (mcVersion) {
         depends = ">=1.20.5 <1.21",
         gameVersions = listOf("1.20.5", "1.20.6"),
         gametest = true,
+        yacl = "3.6.6+1.20.6-fabric",
+        modmenu = "10.0.0",
     )
     "1.21.1" -> Mc(
         yarn = "1.21.1+build.3",
@@ -76,6 +93,8 @@ val mc = when (mcVersion) {
         depends = ">=1.21 <1.21.2",
         gameVersions = listOf("1.21", "1.21.1"),
         gametest = true,
+        yacl = "3.8.2+1.21.1-fabric",
+        modmenu = "11.0.4",
     )
     "1.21.8" -> Mc(
         yarn = "1.21.8+build.1",
@@ -86,6 +105,8 @@ val mc = when (mcVersion) {
         depends = ">=1.21.2 <1.21.9",
         gameVersions = listOf("1.21.2", "1.21.3", "1.21.4", "1.21.5", "1.21.6", "1.21.7", "1.21.8"),
         gametest = true,
+        yacl = "3.8.2+1.21.6-fabric",
+        modmenu = "15.0.2",
     )
     "1.21.10" -> Mc(
         yarn = "1.21.10+build.2",
@@ -96,6 +117,8 @@ val mc = when (mcVersion) {
         depends = ">=1.21.9 <1.22",
         gameVersions = listOf("1.21.9", "1.21.10", "1.21.11"),
         gametest = true,
+        yacl = "3.8.2+1.21.10-fabric",
+        modmenu = "16.0.1",
     )
     else -> error("Unconfigured Minecraft version: $mcVersion")
 }
@@ -106,6 +129,11 @@ base { archivesName.set(property("archives_base_name") as String) }
 
 repositories {
     mavenCentral()
+    // YACL (config screen) and ModMenu (the button) both via Modrinth's maven, which
+    // serves every build uniformly and with dependency-free POMs.
+    maven("https://api.modrinth.com/maven")
+    // YACL jar-in-jars quilt-parsers; the dev client needs it on the classpath (see below).
+    maven("https://maven.quiltmc.org/repository/release")
 }
 
 dependencies {
@@ -120,6 +148,24 @@ dependencies {
         // fabric-api to a 1.20.4 build and breaks runClient on the older anchors.
         // Our own per-anchor fabric-api already provides the command API it needs.
         exclude(group = "net.fabricmc.fabric-api")
+    }
+
+    // Client config screen. Optional for users (suggests in fabric.mod.json); needed
+    // here only to compile the screen. Skipped on 1.18.2, which has no YACL build.
+    if (mc.gui) {
+        modImplementation("maven.modrinth:yacl:${mc.yacl}")
+        modImplementation("maven.modrinth:modmenu:${mc.modmenu}") {
+            // Guard against ModMenu dragging in a mismatched fabric-api; keep ours.
+            exclude(group = "net.fabricmc.fabric-api")
+        }
+        // YACL 3.6+ ships quilt-parsers as a jar-in-jar, but loom does not surface a
+        // Modrinth jar's nested libs onto the dev classpath, so runClient crashes at
+        // YACL init (NoClassDefFoundError: org.quiltmc.parsers...). Add it directly.
+        // YACL 3.1.x (1.19.4) inlines the classes and needs nothing extra.
+        if (!mc.yacl.startsWith("3.1.")) {
+            runtimeOnly("org.quiltmc.parsers:gson:0.2.1")
+            runtimeOnly("org.quiltmc.parsers:json:0.2.1")
+        }
     }
 
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
@@ -151,6 +197,7 @@ tasks.processResources {
         "version" to project.version,
         "java_level" to mc.java,
         "minecraft_dep" to mc.depends,
+        "gui" to mc.gui,
     )
     inputs.properties(props)
     filesMatching(listOf("fabric.mod.json", "*.mixins.json")) { expand(props) }
