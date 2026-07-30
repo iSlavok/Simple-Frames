@@ -81,7 +81,7 @@ public class ItemFrameMixin {
 			ItemFrame frame = ((ItemFrame) (Object) this);
 			boolean isInvisibleFrame = FrameTags.has(frame, FrameTags.INVISIBLE);
 
-			if (itemStackInHand.getItem() == Items.SHEARS && !isInvisibleFrame && SimpleFramesMod.CONFIG.shearsButton.allowsLeft()) {
+			if (itemStackInHand.getItem() == Items.SHEARS && !isInvisibleFrame && !FrameTags.has(frame, FrameTags.WAXED) && SimpleFramesMod.CONFIG.shearsButton.allowsLeft()) {
 				if (!player.isCreative() && SimpleFramesMod.CONFIG.doShearsBreak && consumesDurability(world, itemStackInHand)) {
 					if (itemStackInHand.getDamageValue() < itemStackInHand.getMaxDamage() - 1) {
 						itemStackInHand.setDamageValue(itemStackInHand.getDamageValue() + 1);
@@ -100,7 +100,7 @@ public class ItemFrameMixin {
 				return;
 			}
 
-			if (itemStackInHand.getItem() == Items.LEATHER && isInvisibleFrame && SimpleFramesMod.CONFIG.fixWithLeather
+			if (itemStackInHand.getItem() == Items.LEATHER && isInvisibleFrame && !FrameTags.has(frame, FrameTags.WAXED) && SimpleFramesMod.CONFIG.fixWithLeather
 					&& SimpleFramesMod.CONFIG.leatherButton.allowsLeft()) {
 				if (!player.isCreative() && SimpleFramesMod.CONFIG.doLeatherConsume) { itemStackInHand.shrink(1); }
 				world.playSound(null, frame.blockPosition(), SoundEvents.ITEM_FRAME_PLACE, SoundSource.NEUTRAL, 1f, 1.5f);
@@ -156,7 +156,7 @@ public class ItemFrameMixin {
 			// mod action when it applies (shears -> a visible frame, leather -> an invisible
 			// one) and cancels so the tool isn't placed; with no action to do (or when
 			// sneaking) it falls through to vanilla so the tool can be placed / the item rotated.
-			if (held.getItem() == Items.SHEARS && !invisibleFrame && SimpleFramesMod.CONFIG.shearsButton.allowsRight() && !player.isShiftKeyDown()) {
+			if (held.getItem() == Items.SHEARS && !invisibleFrame && !FrameTags.has(frame, FrameTags.WAXED) && SimpleFramesMod.CONFIG.shearsButton.allowsRight() && !player.isShiftKeyDown()) {
 				if (!player.isCreative() && SimpleFramesMod.CONFIG.doShearsBreak && consumesDurability(serverLevel, held)) {
 					if (held.getDamageValue() < held.getMaxDamage() - 1) {
 						held.setDamageValue(held.getDamageValue() + 1);
@@ -174,7 +174,7 @@ public class ItemFrameMixin {
 				cir.cancel();
 				return;
 			}
-			if (held.getItem() == Items.LEATHER && invisibleFrame && SimpleFramesMod.CONFIG.fixWithLeather
+			if (held.getItem() == Items.LEATHER && invisibleFrame && !FrameTags.has(frame, FrameTags.WAXED) && SimpleFramesMod.CONFIG.fixWithLeather
 					&& SimpleFramesMod.CONFIG.leatherButton.allowsRight() && !player.isShiftKeyDown()) {
 				if (!player.isCreative() && SimpleFramesMod.CONFIG.doLeatherConsume) held.shrink(1);
 				frame.setInvisible(false);
@@ -398,7 +398,7 @@ public class ItemFrameMixin {
 			boolean isInvisibleFrame = FrameTags.has(frame, FrameTags.INVISIBLE);
 
 			// Shears -> make frame invisible
-			if (itemStackInHand.getItem().getTranslationKey().equals("item.minecraft.shears") && !isInvisibleFrame
+			if (itemStackInHand.getItem().getTranslationKey().equals("item.minecraft.shears") && !isInvisibleFrame && !FrameTags.has(frame, FrameTags.WAXED)
 					&& SimpleFramesMod.CONFIG.shearsButton.allowsLeft()) {
 				if (!player.isCreative() && SimpleFramesMod.CONFIG.doShearsBreak && consumesDurability(serverWorld, itemStackInHand)) {
 					if (itemStackInHand.getDamage() < itemStackInHand.getMaxDamage() - 1) {
@@ -421,7 +421,7 @@ public class ItemFrameMixin {
 			}
 
 			// Leather -> restore frame back to normal
-			if (itemStackInHand.getItem().getTranslationKey().equals("item.minecraft.leather") && isInvisibleFrame && SimpleFramesMod.CONFIG.fixWithLeather
+			if (itemStackInHand.getItem().getTranslationKey().equals("item.minecraft.leather") && isInvisibleFrame && !FrameTags.has(frame, FrameTags.WAXED) && SimpleFramesMod.CONFIG.fixWithLeather
 					&& SimpleFramesMod.CONFIG.leatherButton.allowsLeft()) {
 				if (!player.isCreative() && SimpleFramesMod.CONFIG.doLeatherConsume) { itemStackInHand.decrement(1); }
 				serverWorld.playSound(null, frame.getBlockPos(), SoundEvents.ENTITY_ITEM_FRAME_PLACE, SoundCategory.NEUTRAL, 1f, 1.5f);
@@ -489,7 +489,7 @@ public class ItemFrameMixin {
 			// mod action when it applies (shears -> a visible frame, leather -> an invisible
 			// one) and cancels so the tool isn't placed; with no action to do (or when
 			// sneaking) it falls through to vanilla so the tool can be placed / the item rotated.
-			if (held.getItem().getTranslationKey().equals("item.minecraft.shears") && !invisibleFrame
+			if (held.getItem().getTranslationKey().equals("item.minecraft.shears") && !invisibleFrame && !FrameTags.has(frame, FrameTags.WAXED)
 					&& SimpleFramesMod.CONFIG.shearsButton.allowsRight() && !player.isSneaking()) {
 				if (!player.isCreative() && SimpleFramesMod.CONFIG.doShearsBreak && consumesDurability(serverWorld, held)) {
 					if (held.getDamage() < held.getMaxDamage() - 1) {
@@ -508,7 +508,7 @@ public class ItemFrameMixin {
 				cir.cancel();
 				return;
 			}
-			if (held.getItem().getTranslationKey().equals("item.minecraft.leather") && invisibleFrame
+			if (held.getItem().getTranslationKey().equals("item.minecraft.leather") && invisibleFrame && !FrameTags.has(frame, FrameTags.WAXED)
 					&& SimpleFramesMod.CONFIG.fixWithLeather && SimpleFramesMod.CONFIG.leatherButton.allowsRight() && !player.isSneaking()) {
 				if (!player.isCreative() && SimpleFramesMod.CONFIG.doLeatherConsume) held.decrement(1);
 				frame.setInvisible(false);

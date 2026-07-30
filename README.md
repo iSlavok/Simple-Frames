@@ -8,7 +8,7 @@ A lightweight server-side Fabric mod that lets you make item frames **invisible*
 - 🧵 **Restore it with leather** (optional). Right-click... err, *hit* an invisible frame with leather to bring the border back.
 - 🪄 **Persists on pickup.** Break an invisible frame and it drops as a special item that keeps its invisibility when placed again.
 - ✨ **Glow item frames supported.** Vanilla glow frames can be made invisible too — the item keeps its fullbright glow, only the frame vanishes.
-- 🍯 **Wax a frame with honeycomb** to lock the item's rotation — it can no longer be rotated or swapped, just like waxing a sign. Only frames that already hold an item can be waxed.
+- 🍯 **Wax a frame with honeycomb** to lock it — the item can no longer be rotated or swapped (just like waxing a sign), and its visibility is frozen too: shears and leather do nothing to a waxed frame until you un-wax it. Only frames that already hold an item can be waxed.
 - 🪓 **Un-wax with any axe.** Right-click a waxed frame with an axe to remove the wax (the axe takes durability, vanilla-style).
 - 🔒 **Optional full lock.** By default waxing only blocks right-click interactions; enable `waxFullLock` to also make a waxed frame invulnerable.
 - 🖱️ **Pick the button.** Each interaction (shears, leather, honeycomb, axe) can fire on left-click, right-click, or both — configurable per interaction.
@@ -21,10 +21,10 @@ A lightweight server-side Fabric mod that lets you make item frames **invisible*
 2. Hit the frame with **shears** → the frame becomes invisible.
 3. To undo, hit the invisible frame with **leather** (if leather restoration is enabled).
 
-**Waxing** (independent of invisibility — the two combine):
+**Waxing** (an invisible frame can also be waxed — the two states combine):
 
-1. Put an item in a frame, then right-click it with **honeycomb** → the item's rotation is locked. Trying to rotate or swap it plays a denied click.
-2. Right-click the waxed frame with **any axe** → the wax comes off.
+1. Put an item in a frame, then right-click it with **honeycomb** → the frame is locked: its rotation *and* its visibility are frozen. Trying to rotate, swap, or shear/leather it plays a denied click.
+2. Right-click the waxed frame with **any axe** → the wax comes off, and shears/leather work again.
 
 Wax is not kept when the frame is broken. Consumption is vanilla-style (one honeycomb to wax, axe durability to un-wax; free in creative).
 

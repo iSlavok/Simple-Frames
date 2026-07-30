@@ -491,17 +491,46 @@ class FrameListenerTest {
         verify(pdc).remove(waxKey)
     }
 
-    // Shearing a waxed frame makes it invisible but keeps its item -> wax stays.
+    // A waxed frame is locked: shears can't change its visibility. The left-click is a
+    // normal attack (item knocked out by vanilla), so it is not intercepted and the wax is
+    // removed via var2; the frame is not made invisible.
     @Test
-    fun `shears on a waxed frame keep the wax`() {
+    fun `left-click shears do not make a waxed frame invisible`() {
         val plugin = mockPlugin()
         val (frame, pdc) = mockFrame(invisible = false, itemType = Material.DIAMOND, waxed = true)
         val event = damageEvent(frame, mockPlayer(Material.SHEARS))
 
         FrameListener(plugin).onDamage(event)
 
-        verify(pdc, never()).remove(waxKey)
-        verify(pdc).set(key, PersistentDataType.BYTE, 1.toByte())
+        verify(pdc, never()).set(key, PersistentDataType.BYTE, 1.toByte()) // not made invisible
+        verify(event, never()).isCancelled = true                          // normal attack, not intercepted
+        verify(pdc).remove(waxKey)                                         // item knocked out -> var2 removes wax
+    }
+
+    @Test
+    fun `right-click shears do nothing to a waxed frame`() {
+        val plugin = mockPlugin()
+        whenever(plugin.shearsButton).thenReturn(ClickMode.RIGHT)
+        val (frame, pdc) = mockFrame(invisible = false, itemType = Material.DIAMOND, waxed = true)
+        val event = interactEvent(frame, mockPlayer(Material.SHEARS))
+
+        FrameListener(plugin).onInteract(event)
+
+        verify(pdc, never()).set(key, PersistentDataType.BYTE, 1.toByte()) // not made invisible
+        verify(event).isCancelled = true                                   // waxed-deny cancels the right-click
+    }
+
+    @Test
+    fun `right-click leather does not restore a waxed frame`() {
+        val plugin = mockPlugin()
+        whenever(plugin.leatherButton).thenReturn(ClickMode.RIGHT)
+        val (frame, pdc) = mockFrame(invisible = true, itemType = Material.DIAMOND, waxed = true)
+        val event = interactEvent(frame, mockPlayer(Material.LEATHER))
+
+        FrameListener(plugin).onInteract(event)
+
+        verify(pdc, never()).remove(key) // invisibility not changed (still tagged)
+        verify(event).isCancelled = true // waxed-deny
     }
 
     // --- Configurable buttons: left-click honeycomb + left-click axe under full lock ---

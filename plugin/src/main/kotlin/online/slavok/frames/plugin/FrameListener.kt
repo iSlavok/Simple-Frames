@@ -131,13 +131,13 @@ class FrameListener(
      */
     private fun tryTool(frame: ItemFrame, player: Player, cancel: () -> Unit): Boolean {
         val hand = player.inventory.itemInMainHand
-        if (hand.type == Material.SHEARS && !isInvisible(frame) && plugin.shearsButton.allowsLeft()
+        if (hand.type == Material.SHEARS && !isInvisible(frame) && !isWaxed(frame) && plugin.shearsButton.allowsLeft()
             && player.hasPermission("simpleframes.use.shear")) {
             cancel()
             doShear(frame, player, hand)
             return true
         }
-        if (hand.type == Material.LEATHER && isInvisible(frame) && plugin.fixWithLeather && plugin.leatherButton.allowsLeft()
+        if (hand.type == Material.LEATHER && isInvisible(frame) && !isWaxed(frame) && plugin.fixWithLeather && plugin.leatherButton.allowsLeft()
             && player.hasPermission("simpleframes.use.restore")) {
             cancel()
             doRestore(frame, player, hand)
@@ -248,20 +248,21 @@ class FrameListener(
     fun onInteract(event: PlayerInteractEntityEvent) {
         val frame = event.rightClicked as? ItemFrame ?: return
 
-        // Tool interactions on right-click (invisibility is orthogonal to wax; handle
-        // before the wax block and independent of enableWax). Plain right-click does the mod
-        // action when it applies (shears -> a visible frame, leather -> an invisible one) and
-        // cancels so the tool isn't placed; when there is no action to do (or the player is
-        // sneaking) it falls through to vanilla, so the tool can be placed / the item rotated.
-        // Mutation is gated to the main hand; the off-hand copy of the event only cancels.
+        // Tool interactions on right-click, independent of enableWax. A waxed frame is
+        // locked: shears/leather can't change its visibility (see the !isWaxed guards), so
+        // those fall through to the wax block's denied click. Otherwise plain right-click does
+        // the mod action when it applies (shears -> a visible frame, leather -> an invisible
+        // one) and cancels so the tool isn't placed; with no action to do (or when sneaking)
+        // it falls through to vanilla so the tool can be placed / the item rotated. Mutation
+        // is gated to the main hand; the off-hand copy of the event only cancels.
         val rmbHand = event.player.inventory.itemInMainHand
-        if (rmbHand.type == Material.SHEARS && !isInvisible(frame) && plugin.shearsButton.allowsRight() && !event.player.isSneaking
+        if (rmbHand.type == Material.SHEARS && !isInvisible(frame) && !isWaxed(frame) && plugin.shearsButton.allowsRight() && !event.player.isSneaking
             && event.player.hasPermission("simpleframes.use.shear")) {
             event.isCancelled = true
             if (event.hand == EquipmentSlot.HAND) doShear(frame, event.player, rmbHand)
             return
         }
-        if (rmbHand.type == Material.LEATHER && isInvisible(frame) && plugin.fixWithLeather && plugin.leatherButton.allowsRight() && !event.player.isSneaking
+        if (rmbHand.type == Material.LEATHER && isInvisible(frame) && !isWaxed(frame) && plugin.fixWithLeather && plugin.leatherButton.allowsRight() && !event.player.isSneaking
             && event.player.hasPermission("simpleframes.use.restore")) {
             event.isCancelled = true
             if (event.hand == EquipmentSlot.HAND) doRestore(frame, event.player, rmbHand)
