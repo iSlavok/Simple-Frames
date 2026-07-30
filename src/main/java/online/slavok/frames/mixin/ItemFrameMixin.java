@@ -322,10 +322,16 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import org.spongepowered.asm.mixin.Unique;
 
 
 @Mixin(ItemFrameEntity.class)
 public class ItemFrameMixin {
+	// Set when an axe removes wax under full lock (see injectDamage): the damage handler
+	// makes a second pass once the WAXED tag is gone, which would knock the held item out —
+	// so the next damage() is cancelled outright to keep the item.
+	@Unique private boolean simpleframes$protectItemDrop = false;
+
 	@Inject(at = @At("HEAD"), method = "damage", cancellable = true)
 	//? if >=1.21.2 {
 	private void injectDamage(ServerWorld world, DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
@@ -334,6 +340,14 @@ public class ItemFrameMixin {
 	//?}
 		try {
 			ItemFrameEntity self = ((ItemFrameEntity) (Object) this);
+			// Second damage pass right after an axe un-waxed a full-locked frame (tag now gone):
+			// cancel it so the un-waxing attack can't also pop the item. One-shot.
+			if (this.simpleframes$protectItemDrop) {
+				this.simpleframes$protectItemDrop = false;
+				cir.setReturnValue(false);
+				cir.cancel();
+				return;
+			}
 			if (SimpleFramesMod.CONFIG.enableWax && SimpleFramesMod.CONFIG.waxFullLock && FrameTags.has(self, FrameTags.WAXED)) {
 				//? if >=1.21.10 {
 				/*ServerWorld lockWorld = self.getEntityWorld() instanceof ServerWorld ? (ServerWorld) self.getEntityWorld() : null;*/
@@ -353,6 +367,7 @@ public class ItemFrameMixin {
 							axe.decrement(1);
 						}
 					}
+					this.simpleframes$protectItemDrop = true;
 					FrameTags.remove(self, FrameTags.WAXED);
 					lockWorld.playSound(null, self.getBlockPos(), SoundEvents.ITEM_AXE_WAX_OFF, SoundCategory.BLOCKS, 1f, 1.5f);
 					lockWorld.spawnParticles(ParticleTypes.WAX_OFF, self.getX(), self.getY(), self.getZ(), 7, 0.2, 0.2, 0.2, 0.1);
