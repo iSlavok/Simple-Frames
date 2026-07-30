@@ -30,6 +30,19 @@ open class SimpleFramesPlugin : JavaPlugin() {
     var doAxeBreak = true
         private set
 
+    var shearsButton = ClickMode.LEFT
+        private set
+    var leatherButton = ClickMode.LEFT
+        private set
+    var honeycombButton = ClickMode.BOTH
+        private set
+    var axeButton = ClickMode.BOTH
+        private set
+    var doLeatherConsume = true
+        private set
+    var doHoneycombConsume = true
+        private set
+
     override fun onEnable() {
         saveDefaultConfig()
         doShearsBreak = config.getBoolean("doShearsBreak", true)
@@ -39,6 +52,12 @@ open class SimpleFramesPlugin : JavaPlugin() {
         enableWax = config.getBoolean("enableWax", true)
         waxFullLock = config.getBoolean("waxFullLock", false)
         doAxeBreak = config.getBoolean("doAxeBreak", true)
+        shearsButton = ClickMode.parse(config.getString("shearsButton"), ClickMode.LEFT)
+        leatherButton = ClickMode.parse(config.getString("leatherButton"), ClickMode.LEFT)
+        honeycombButton = ClickMode.parse(config.getString("honeycombButton"), ClickMode.BOTH)
+        axeButton = ClickMode.parse(config.getString("axeButton"), ClickMode.BOTH)
+        doLeatherConsume = config.getBoolean("doLeatherConsume", true)
+        doHoneycombConsume = config.getBoolean("doHoneycombConsume", true)
         invisibleKey = NamespacedKey(this, "invisibleframe")
         waxedKey = NamespacedKey(this, "waxedframe")
 
@@ -79,6 +98,42 @@ open class SimpleFramesPlugin : JavaPlugin() {
     fun setDoAxeBreak(value: Boolean) {
         doAxeBreak = value
         config.set("doAxeBreak", value)
+        saveConfig()
+    }
+
+    fun setShearsButton(value: ClickMode) {
+        shearsButton = value
+        config.set("shearsButton", value.name)
+        saveConfig()
+    }
+
+    fun setLeatherButton(value: ClickMode) {
+        leatherButton = value
+        config.set("leatherButton", value.name)
+        saveConfig()
+    }
+
+    fun setHoneycombButton(value: ClickMode) {
+        honeycombButton = value
+        config.set("honeycombButton", value.name)
+        saveConfig()
+    }
+
+    fun setAxeButton(value: ClickMode) {
+        axeButton = value
+        config.set("axeButton", value.name)
+        saveConfig()
+    }
+
+    fun setDoLeatherConsume(value: Boolean) {
+        doLeatherConsume = value
+        config.set("doLeatherConsume", value)
+        saveConfig()
+    }
+
+    fun setDoHoneycombConsume(value: Boolean) {
+        doHoneycombConsume = value
+        config.set("doHoneycombConsume", value)
         saveConfig()
     }
 }

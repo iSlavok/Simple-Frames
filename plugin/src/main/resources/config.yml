@@ -20,3 +20,15 @@ waxFullLock: false
 
 # Do axes lose durability when removing wax.
 doAxeBreak: true
+
+# Which mouse button triggers each interaction: LEFT, RIGHT, or BOTH.
+# For shears/leather on RIGHT (or BOTH): sneak + right-click = vanilla place/rotate,
+# plain right-click = the mod action.
+shearsButton: LEFT
+leatherButton: LEFT
+honeycombButton: BOTH
+axeButton: BOTH
+
+# Do leather / honeycomb get consumed when used.
+doLeatherConsume: true
+doHoneycombConsume: true

@@ -32,6 +32,26 @@ class Config {
     @JvmField
     var doAxeBreak = true
 
+    // Which mouse button triggers each interaction: LEFT, RIGHT, or BOTH.
+    @JvmField
+    var shearsButton = ClickMode.LEFT
+
+    @JvmField
+    var leatherButton = ClickMode.LEFT
+
+    @JvmField
+    var honeycombButton = ClickMode.BOTH
+
+    @JvmField
+    var axeButton = ClickMode.BOTH
+
+    // Do leather / honeycomb get consumed when used.
+    @JvmField
+    var doLeatherConsume = true
+
+    @JvmField
+    var doHoneycombConsume = true
+
     // Item names shown on the invisible-frame item.
     @JvmField
     var invisibleFrameName = "Invisible Item Frame"
@@ -56,6 +76,12 @@ class Config {
                         "enableWax" -> enableWax = value.toBoolean()
                         "waxFullLock" -> waxFullLock = value.toBoolean()
                         "doAxeBreak" -> doAxeBreak = value.toBoolean()
+                        "shearsButton" -> shearsButton = ClickMode.parse(value, ClickMode.LEFT)
+                        "leatherButton" -> leatherButton = ClickMode.parse(value, ClickMode.LEFT)
+                        "honeycombButton" -> honeycombButton = ClickMode.parse(value, ClickMode.BOTH)
+                        "axeButton" -> axeButton = ClickMode.parse(value, ClickMode.BOTH)
+                        "doLeatherConsume" -> doLeatherConsume = value.toBoolean()
+                        "doHoneycombConsume" -> doHoneycombConsume = value.toBoolean()
                         "invisibleFrameName" -> if (value.isNotEmpty()) invisibleFrameName = value
                         "invisibleGlowFrameName" -> if (value.isNotEmpty()) invisibleGlowFrameName = value
                     }
@@ -83,6 +109,16 @@ class Config {
             writer.write("waxFullLock=$waxFullLock\n\n")
             writer.write("# Do axes lose durability when removing wax\n")
             writer.write("doAxeBreak=$doAxeBreak\n\n")
+            writer.write("# Which mouse button triggers each interaction: LEFT, RIGHT, or BOTH.\n")
+            writer.write("# Shears/leather on RIGHT (or BOTH): sneak + right-click = vanilla place/rotate,\n")
+            writer.write("# plain right-click = the mod action.\n")
+            writer.write("shearsButton=${shearsButton.name}\n")
+            writer.write("leatherButton=${leatherButton.name}\n")
+            writer.write("honeycombButton=${honeycombButton.name}\n")
+            writer.write("axeButton=${axeButton.name}\n\n")
+            writer.write("# Do leather / honeycomb get consumed when used\n")
+            writer.write("doLeatherConsume=$doLeatherConsume\n")
+            writer.write("doHoneycombConsume=$doHoneycombConsume\n\n")
             writer.write("# Item name shown on an invisible frame\n")
             writer.write("invisibleFrameName=$invisibleFrameName\n\n")
             writer.write("# Item name shown on an invisible glow frame\n")

@@ -16,6 +16,7 @@ import net.minecraft.server.command.ServerCommandSource
 import net.minecraft.text.Text
 import net.minecraft.util.Formatting
 //?}
+import online.slavok.frames.ClickMode
 import online.slavok.frames.SimpleFramesMod
 import online.slavok.frames.colored
 import online.slavok.frames.literalText
@@ -73,6 +74,48 @@ class FrameCommand {
                         { value -> SimpleFramesMod.CONFIG.doAxeBreak = value }
                     )
                 )
+                .then(
+                    toggle(
+                        "doLeatherConsume",
+                        { SimpleFramesMod.CONFIG.doLeatherConsume },
+                        { value -> SimpleFramesMod.CONFIG.doLeatherConsume = value }
+                    )
+                )
+                .then(
+                    toggle(
+                        "doHoneycombConsume",
+                        { SimpleFramesMod.CONFIG.doHoneycombConsume },
+                        { value -> SimpleFramesMod.CONFIG.doHoneycombConsume = value }
+                    )
+                )
+                .then(
+                    choice(
+                        "shearsButton",
+                        { SimpleFramesMod.CONFIG.shearsButton },
+                        { value -> SimpleFramesMod.CONFIG.shearsButton = value }
+                    )
+                )
+                .then(
+                    choice(
+                        "leatherButton",
+                        { SimpleFramesMod.CONFIG.leatherButton },
+                        { value -> SimpleFramesMod.CONFIG.leatherButton = value }
+                    )
+                )
+                .then(
+                    choice(
+                        "honeycombButton",
+                        { SimpleFramesMod.CONFIG.honeycombButton },
+                        { value -> SimpleFramesMod.CONFIG.honeycombButton = value }
+                    )
+                )
+                .then(
+                    choice(
+                        "axeButton",
+                        { SimpleFramesMod.CONFIG.axeButton },
+                        { value -> SimpleFramesMod.CONFIG.axeButton = value }
+                    )
+                )
         )
     }
 
@@ -95,6 +138,30 @@ class FrameCommand {
             literalText("[SimpleFrames] ").colored(Formatting.GOLD)
                 .append(literalText("$name = ").colored(Formatting.AQUA))
                 .append(literalText(value.toString()).colored(if (value) Formatting.GREEN else Formatting.RED)),
+            false
+        )
+        return 1
+    }
+
+    // Enum option (ClickMode): a literal child per value gives free tab-completion.
+    private fun choice(name: String, getter: () -> ClickMode, setter: (ClickMode) -> Unit) =
+        ClickMode.entries.fold(
+            literal(name).executes { context -> showEnum(context.source, name, getter()) }
+        ) { node, mode ->
+            node.then(
+                literal(mode.name).executes { context ->
+                    setter(mode)
+                    SimpleFramesMod.CONFIG.dump()
+                    showEnum(context.source, name, getter())
+                }
+            )
+        }
+
+    private fun showEnum(source: ServerCommandSource, name: String, value: ClickMode): Int {
+        source.feedback(
+            literalText("[SimpleFrames] ").colored(Formatting.GOLD)
+                .append(literalText("$name = ").colored(Formatting.AQUA))
+                .append(literalText(value.name).colored(Formatting.WHITE)),
             false
         )
         return 1

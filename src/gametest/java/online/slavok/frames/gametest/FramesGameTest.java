@@ -85,6 +85,23 @@ public class FramesGameTest {
         }
         SimpleFramesMod.CONFIG.enableWax = origWax;
 
+        // New interaction-button config is live: the ClickMode enum + a consume toggle
+        // round-trip. (The button routing itself needs a real player attacker, so it stays
+        // out of this headless apply-level test.)
+        online.slavok.frames.ClickMode origShears = SimpleFramesMod.CONFIG.shearsButton;
+        SimpleFramesMod.CONFIG.shearsButton = online.slavok.frames.ClickMode.BOTH;
+        if (!SimpleFramesMod.CONFIG.shearsButton.allowsRight()) {
+            throw new RuntimeException("shearsButton BOTH should allow right-click");
+        }
+        SimpleFramesMod.CONFIG.shearsButton = origShears;
+
+        boolean origHoney = SimpleFramesMod.CONFIG.doHoneycombConsume;
+        SimpleFramesMod.CONFIG.doHoneycombConsume = !origHoney;
+        if (SimpleFramesMod.CONFIG.doHoneycombConsume == origHoney) {
+            throw new RuntimeException("doHoneycombConsume toggle did not take effect");
+        }
+        SimpleFramesMod.CONFIG.doHoneycombConsume = origHoney;
+
         // Regression: evaluating the command permission predicate must not throw.
         // fabric-permissions-api's int check referenced a stale hasPermissionLevel
         // intermediary that crashed on player join (NoSuchMethodError).
