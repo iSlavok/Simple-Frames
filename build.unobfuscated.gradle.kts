@@ -59,6 +59,8 @@ repositories {
     // YACL (config screen) and ModMenu (the button) both via Modrinth's maven, which
     // serves every build uniformly and with dependency-free POMs.
     maven("https://api.modrinth.com/maven")
+    // YACL jar-in-jars quilt-parsers; the dev client needs it on the classpath (see below).
+    maven("https://maven.quiltmc.org/repository/release")
 }
 
 dependencies {
@@ -82,6 +84,10 @@ dependencies {
     implementation("maven.modrinth:modmenu:${u.modmenu}") {
         exclude(group = "net.fabricmc.fabric-api")
     }
+    // YACL 3.9.x ships quilt-parsers as a jar-in-jar, which loom does not surface on
+    // the dev classpath from a Modrinth jar; the dev client needs it added directly.
+    runtimeOnly("org.quiltmc.parsers:gson:0.2.1")
+    runtimeOnly("org.quiltmc.parsers:json:0.2.1")
 
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
