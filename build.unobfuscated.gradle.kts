@@ -17,6 +17,9 @@ data class Unobf(
     val runtimeJava: Int,       // Java the game requires at runtime (fabric.mod.json + mixin level)
     val depends: String,
     val gameVersions: List<String>,
+    // Client config screen deps (YACL + ModMenu). Present for both 26.x anchors.
+    val yacl: String,
+    val modmenu: String,
 )
 
 // Our own bytecode targets 21; Java 21 classes run fine on the game's Java 25
@@ -32,6 +35,8 @@ val u = when (mcVersion) {
         runtimeJava = 25,
         depends = ">=26.1 <26.2",
         gameVersions = listOf("26.1", "26.1.1", "26.1.2"),
+        yacl = "3.9.6+26.1-fabric",
+        modmenu = "18.0.0",
     )
     "26.2" -> Unobf(
         fapi = "0.155.2+26.2",
@@ -39,6 +44,8 @@ val u = when (mcVersion) {
         runtimeJava = 25,
         depends = ">=26.2 <27",
         gameVersions = listOf("26.2"),
+        yacl = "3.9.6+26.2-fabric",
+        modmenu = "20.0.1",
     )
     else -> error("Unconfigured Minecraft version: $mcVersion")
 }
@@ -49,6 +56,9 @@ base { archivesName.set(property("archives_base_name") as String) }
 
 repositories {
     mavenCentral()
+    // YACL (config screen) and ModMenu (the button) both via Modrinth's maven, which
+    // serves every build uniformly and with dependency-free POMs.
+    maven("https://api.modrinth.com/maven")
 }
 
 dependencies {
@@ -64,6 +74,15 @@ dependencies {
     // fabric-permissions-api is not published for 26+; commands fall back to the
     // vanilla operator level on this version (see the >=1.22 branch in Permission).
 
+    // Client config screen deps. Optional for users (suggests in fabric.mod.json);
+    // needed here only to compile the screen. Non-remapping loom has no
+    // modImplementation, and 26.x mods are already Mojmap-named, so add them as plain
+    // implementation libraries (mirrors how fabric-api is wired on this node).
+    implementation("maven.modrinth:yacl:${u.yacl}")
+    implementation("maven.modrinth:modmenu:${u.modmenu}") {
+        exclude(group = "net.fabricmc.fabric-api")
+    }
+
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
@@ -77,6 +96,7 @@ tasks.processResources {
         "version" to project.version,
         "java_level" to u.runtimeJava,
         "minecraft_dep" to u.depends,
+        "gui" to true,
     )
     inputs.properties(props)
     filesMatching(listOf("fabric.mod.json", "*.mixins.json")) { expand(props) }
